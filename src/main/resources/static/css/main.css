@@ -1,0 +1,232 @@
+/* ========================================
+   ServerWatch - Custom Styles
+   ======================================== */
+
+/* Root Variables */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+    --dark-color: #212529;
+    --light-color: #f8f9fa;
+}
+
+/* Global Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+}
+
+/* Header Styles */
+.header {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Navigation Styles */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-nav .nav-link {
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    margin: 0 2px;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.navbar-nav .nav-link.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+}
+
+/* Card Styles */
+.card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background-color: var(--light-color);
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+}
+
+/* Status Cards */
+.card.bg-primary,
+.card.bg-success,
+.card.bg-warning,
+.card.bg-danger {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.card.bg-primary:hover,
+.card.bg-success:hover,
+.card.bg-warning:hover,
+.card.bg-danger:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+/* Buttons */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Alerts */
+.alert {
+    border: none;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.alert-info {
+    border-left-color: var(--info-color);
+    background-color: rgba(13, 202, 240, 0.1);
+}
+
+.alert-success {
+    border-left-color: var(--success-color);
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.alert-warning {
+    border-left-color: var(--warning-color);
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.alert-danger {
+    border-left-color: var(--danger-color);
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Tables */
+.table {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background-color: var(--dark-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0,0,0,0.05);
+}
+
+/* Badge Styles */
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+}
+
+/* Footer Styles */
+.footer {
+    border-top: 1px solid #dee2e6;
+    margin-top: auto;
+}
+
+/* Loading Animation */
+.spinner-border {
+    animation: spinner-border 0.75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .navbar-nav {
+        text-align: center;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .display-4 {
+        font-size: 2rem;
+    }
+}
+
+/* Status Indicators */
+.status-online {
+    color: var(--success-color);
+}
+
+.status-offline {
+    color: var(--danger-color);
+}
+
+.status-warning {
+    color: var(--warning-color);
+}
+
+/* Custom Utilities */
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.font-weight-bold {
+    font-weight: 700 !important;
+}
+
+.text-gray-300 {
+    color: #dee2e6 !important;
+}
+
+/* Animation Classes */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.slide-in {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}

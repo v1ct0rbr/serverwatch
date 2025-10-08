@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Navigation Fragment -->
+<nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/}" th:classappend="${#request.requestURI == '/' ? 'active' : ''}">
+                        <i class="fas fa-home me-1"></i>Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/servers}" th:classappend="${#strings.contains(#request.requestURI, '/servers') ? 'active' : ''}">
+                        <i class="fas fa-server me-1"></i>Servidores
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/monitoring}" th:classappend="${#strings.contains(#request.requestURI, '/monitoring') ? 'active' : ''}">
+                        <i class="fas fa-chart-line me-1"></i>Monitoramento
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/alerts}" th:classappend="${#strings.contains(#request.requestURI, '/alerts') ? 'active' : ''}">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Alertas
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:href="@{/settings}" th:classappend="${#strings.contains(#request.requestURI, '/settings') ? 'active' : ''}">
+                        <i class="fas fa-cog me-1"></i>Configurações
+                    </a>
+                </li>
+            </ul>
+            
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user me-1"></i>Usuário
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" th:href="@{/profile}">
+                            <i class="fas fa-user-edit me-2"></i>Perfil
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" th:href="@{/logout}">
+                            <i class="fas fa-sign-out-alt me-2"></i>Sair
+                        </a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+</html>

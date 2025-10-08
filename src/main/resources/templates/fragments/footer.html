@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Footer Fragment -->
+<footer th:fragment="footer" class="footer mt-auto py-3 bg-dark text-light">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6">
+                <p class="mb-1">&copy; 2025 ServerWatch - Sistema de Monitoramento</p>
+                <small class="text-muted">Desenvolvido com Spring Boot & Thymeleaf</small>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">
+                    Versão 1.0.0 | 
+                    <span th:text="'Uptime: ' + ${#dates.format(#dates.createNow(), 'HH:mm:ss')}">
+                        Uptime: 14:30:00
+                    </span>
+                </small>
+            </div>
+        </div>
+    </div>
+</footer>
+
+</html>
