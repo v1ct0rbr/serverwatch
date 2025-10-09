@@ -1,85 +1,132 @@
-package br.gov.pb.der.netnotify.config;
+package com.victorqueiroga.serverwatch.config;
 
-import java.util.Arrays;
-
+import com.victorqueiroga.serverwatch.security.KeycloakJwtAuthenticationConverter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
+
+/**
+ * Configuração de segurança integrada com Keycloak
+ */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final LdapAuthenticationFilter LdapAuthenticationFilter;
-    // private final ApiTokenAuthFilter apiTokenAuthFilter;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    @Value("${keycloak.auth-server-url}")
+    private String keycloakServerUrl;
 
+    @Value("${keycloak.realm}")
+    private String realm;
+
+    private final KeycloakJwtAuthenticationConverter keycloakJwtConverter;
+
+    /**
+     * Configuração do decoder JWT para Keycloak
+     */
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+    public JwtDecoder jwtDecoder() {
+        String jwkSetUri = keycloakServerUrl + "/realms/" + realm + "/protocol/openid-connect/certs";
+        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
     }
 
-    public SecurityConfiguration(LdapAuthenticationFilter LdapAuthenticationFilter,
-            JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.LdapAuthenticationFilter = LdapAuthenticationFilter;
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    /**
+     * Configuração do converter JWT para extrair authorities do Keycloak
+     */
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(keycloakJwtConverter);
+        return converter;
     }
 
+    /**
+     * Configuração da cadeia de filtros de segurança
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/auth/**",
-                                "/public/**",
-                                "/hello",
-                                "/swagger-ui/**",
-                                "/V3/api-docs/**",
-                                "/swagger-ui.html",
-                                "/test-consumer/**",
-                                "/error/**")
-                        .permitAll()
-                        .requestMatchers("/profile/**", "/aux/**", "/hello").authenticated()
-                        .requestMatchers("/messages/**").hasAnyAuthority("ROLE_USER", "ROLE_SUPER")
-                        .requestMatchers("/admin/**").hasAuthority("ROLE_SUPER")
-                        .anyRequest().authenticated())
-                .addFilterBefore(LdapAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            
+            // Configuração OAuth2 Resource Server para JWT
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt
+                    .decoder(jwtDecoder())
+                    .jwtAuthenticationConverter(jwtAuthenticationConverter())
+                ))
+            
+            // Configuração OAuth2 Login para Keycloak
+            .oauth2Login(oauth2 -> oauth2
+                .loginPage("/oauth2/authorization/keycloak")
+                .defaultSuccessUrl("/dashboard", true)
+                .failureUrl("/login?error=true"))
+            
+            // Configuração de logout
+            .logout(logout -> logout
+                .logoutUrl("/logout")
+                .logoutSuccessUrl("/login?logout=true")
+                .invalidateHttpSession(true)
+                .clearAuthentication(true))
+            
+            // Configuração de autorização de requisições
+            .authorizeHttpRequests(auth -> auth
+                // Recursos públicos
+                .requestMatchers(
+                    "/",
+                    "/login**",
+                    "/oauth2/**",
+                    "/public/**",
+                    "/css/**",
+                    "/js/**",
+                    "/images/**",
+                    "/lib/**",
+                    "/error/**",
+                    "/favicon.ico").permitAll()
+                
+                // Recursos que requerem autenticação
+                .requestMatchers("/dashboard", "/servers/**", "/monitoring/**").hasAnyRole("USER", "ADMIN")
+                
+                // Recursos administrativos
+                .requestMatchers("/admin/**", "/settings/**").hasRole("ADMIN")
+                
+                // Qualquer outra requisição requer autenticação
+                .anyRequest().authenticated());
+
         return http.build();
     }
 
-    // Configuração CORS (importante para evitar problemas 403 em requisições de
-    // diferentes origens)
+    /**
+     * Configuração CORS
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Permite todas origens (ajuste para produção)
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-    }
-
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
     }
 }

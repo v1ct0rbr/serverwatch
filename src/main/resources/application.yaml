@@ -13,26 +13,51 @@ spring:
     encoding: UTF-8
     cache-duration: 3600
   
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: ${KEYCLOAK_CLIENT_ID:serverwatch-client}
+            client-secret: ${KEYCLOAK_CLIENT_SECRET:your-client-secret}
+            scope: openid,profile,email,roles
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            client-name: ServerWatch Keycloak
+        provider:
+          keycloak:
+            authorization-uri: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}/realms/${KEYCLOAK_REALM:DERPB}/protocol/openid-connect/auth
+            token-uri: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}/realms/${KEYCLOAK_REALM:DERPB}/protocol/openid-connect/token
+            user-info-uri: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}/realms/${KEYCLOAK_REALM:DERPB}/protocol/openid-connect/userinfo
+            jwk-set-uri: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}/realms/${KEYCLOAK_REALM:DERPB}/protocol/openid-connect/certs
+            user-name-attribute: preferred_username
+            issuer-uri: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}/realms/${KEYCLOAK_REALM:DERPB}
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}/realms/${KEYCLOAK_REALM:DERPB}/protocol/openid-connect/certs
+          issuer-uri: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}/realms/${KEYCLOAK_REALM:DERPB}
+  
   datasource:
-    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}
-    username: ${DATABASE_USER}
-    password: ${DATABASE_PASSWORD}
+    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_NAME:serverwatch_db}
+    username: ${DATABASE_USER:serverwatch_user}
+    password: ${DATABASE_PASSWORD:serverwatch_password}
     driver-class-name: org.postgresql.Driver
    
 keycloak:
-  auth-server-url: https://keycloak.derpb.com.br/realms/DERPB/broker/keycloak-oidc/endpoint
-  realm: DERPB
-  resource: serverwatch-client
-  credentials:
-    secret: your-client
-    cliente-id: serverwatch-client
-  use-resource-role-mappings: true
-  bearer-only: true
-  security-constraints:
-    - authRoles:
-        - user
-      securityCollections:
-        - patterns:
-            - /api/*
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}
+  realm: ${KEYCLOAK_REALM:DERPB}
+  resource: ${KEYCLOAK_CLIENT_ID:serverwatch-client}
+  admin:
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:serverwatch-admin}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:your-admin-secret}
+
+# Configurações de logging para debug
+logging:
+  level:
+    '[org.springframework.security]': ${LOGGING_LEVEL_SECURITY:INFO}
+    '[org.springframework.security.oauth2]': ${LOGGING_LEVEL_KEYCLOAK:DEBUG}
+    '[org.springframework.web.client]': ${LOGGING_LEVEL_KEYCLOAK:DEBUG}
+    '[com.victorqueiroga.serverwatch.security]': ${LOGGING_LEVEL_KEYCLOAK:DEBUG}
+    
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}

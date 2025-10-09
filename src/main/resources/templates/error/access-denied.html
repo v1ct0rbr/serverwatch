@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout (~{::content})}">
+
+<div th:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-ban fa-5x text-danger"></i>
+                    </div>
+                    
+                    <h1 class="display-5 text-danger mb-3">Acesso Negado</h1>
+                    
+                    <p class="lead text-muted mb-4">
+                        Você não possui permissão para acessar este recurso.
+                    </p>
+                    
+                    <div class="alert alert-warning" role="alert">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                            <div class="col text-start">
+                                <h6 class="mb-1">Permissões Insuficientes</h6>
+                                <p class="mb-0">
+                                    Sua conta não possui as permissões necessárias para acessar esta página. 
+                                    Entre em contato com o administrador do sistema se você acredita que deveria ter acesso.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Informações do usuário se estiver logado -->
+                    <div th:if="${user != null}" class="card mt-4">
+                        <div class="card-body">
+                            <h6 class="card-title text-muted">Informações da Sua Conta:</h6>
+                            <div class="row">
+                                <div class="col-md-6 text-start">
+                                    <p class="mb-2">
+                                        <strong>Usuário:</strong> 
+                                        <span th:text="${user.username}">username</span>
+                                    </p>
+                                    <p class="mb-2">
+                                        <strong>Nome:</strong> 
+                                        <span th:text="${user.fullName}">Nome Completo</span>
+                                    </p>
+                                </div>
+                                <div class="col-md-6 text-start">
+                                    <p class="mb-2">
+                                        <strong>E-mail:</strong> 
+                                        <span th:text="${user.email}">email@example.com</span>
+                                    </p>
+                                    <p class="mb-2">
+                                        <strong>Roles Atuais:</strong>
+                                    </p>
+                                    <div th:if="${user.authorities != null and !user.authorities.empty}">
+                                        <span th:each="authority : ${user.authorities}" 
+                                              class="badge bg-secondary me-1 mb-1"
+                                              th:text="${authority.authority}">
+                                            ROLE_USER
+                                        </span>
+                                    </div>
+                                    <div th:if="${user.authorities == null or user.authorities.empty}">
+                                        <span class="text-muted">Nenhuma role atribuída</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botões de Ação -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+                        <a th:href="@{/dashboard}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i>
+                            Voltar ao Dashboard
+                        </a>
+                        
+                        <a th:href="@{/profile}" class="btn btn-outline-secondary" th:if="${user != null}">
+                            <i class="fas fa-user me-2"></i>
+                            Meu Perfil
+                        </a>
+                        
+                        <button class="btn btn-outline-secondary" onclick="history.back()">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Página Anterior
+                        </button>
+                    </div>
+                    
+                    <!-- Informações de Contato -->
+                    <div class="mt-5 pt-4" style="border-top: 1px solid #dee2e6;">
+                        <h6 class="text-muted">Precisa de Ajuda?</h6>
+                        <p class="text-muted mb-2">
+                            Se você acredita que deveria ter acesso a este recurso, entre em contato:
+                        </p>
+                        <div class="row justify-content-center">
+                            <div class="col-auto">
+                                <i class="fas fa-envelope text-primary me-2"></i>
+                                <small>suporte@serverwatch.com</small>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-phone text-primary me-2"></i>
+                                <small>(83) 1234-5678</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</html>

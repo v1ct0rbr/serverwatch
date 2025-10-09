@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout (~{::content})}">
+
+<div th:fragment="content">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Meu Perfil
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Informações do Usuário -->
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Informações Pessoais
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">ID do Usuário:</label>
+                                <p class="text-muted" th:text="${user.id}">user-id</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nome de Usuário:</label>
+                                <p class="text-muted" th:text="${user.username}">username</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nome Completo:</label>
+                                <p class="text-muted" th:text="${user.fullName}">Nome Completo</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">E-mail:</label>
+                                <p class="text-muted" th:text="${user.email}">email@example.com</p>
+                                <span th:if="${user.emailVerified}" class="badge bg-success ms-2">
+                                    <i class="fas fa-check me-1"></i>Verificado
+                                </span>
+                                <span th:unless="${user.emailVerified}" class="badge bg-warning ms-2">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Não Verificado
+                                </span>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Status da Conta:</label>
+                                <span th:if="${user.enabled}" class="badge bg-success">
+                                    <i class="fas fa-check-circle me-1"></i>Ativa
+                                </span>
+                                <span th:unless="${user.enabled}" class="badge bg-danger">
+                                    <i class="fas fa-times-circle me-1"></i>Inativa
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Roles e Permissões -->
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-user-shield me-1"></i>
+                                Roles e Permissões
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Roles Atribuídas:</label>
+                                <div th:if="${user.authorities != null and !user.authorities.empty}">
+                                    <span th:each="authority : ${user.authorities}" 
+                                          class="badge bg-info me-2 mb-2"
+                                          th:text="${authority.authority}">
+                                        ROLE_USER
+                                    </span>
+                                </div>
+                                <div th:if="${user.authorities == null or user.authorities.empty}">
+                                    <p class="text-muted">Nenhuma role atribuída</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Verificações de Permissão -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Verificações de Acesso:</label>
+                                
+                                <div class="d-flex align-items-center mb-2">
+                                    <span th:if="${user.hasRole('ADMIN')}" class="badge bg-success me-2">
+                                        <i class="fas fa-check me-1"></i>Administrador
+                                    </span>
+                                    <span th:unless="${user.hasRole('ADMIN')}" class="badge bg-secondary me-2">
+                                        <i class="fas fa-times me-1"></i>Administrador
+                                    </span>
+                                </div>
+                                
+                                <div class="d-flex align-items-center mb-2">
+                                    <span th:if="${user.hasRole('USER')}" class="badge bg-success me-2">
+                                        <i class="fas fa-check me-1"></i>Usuário
+                                    </span>
+                                    <span th:unless="${user.hasRole('USER')}" class="badge bg-secondary me-2">
+                                        <i class="fas fa-times me-1"></i>Usuário
+                                    </span>
+                                </div>
+                                
+                                <div class="d-flex align-items-center mb-2">
+                                    <span th:if="${user.hasRole('EMAIL_VERIFIED')}" class="badge bg-success me-2">
+                                        <i class="fas fa-check me-1"></i>E-mail Verificado
+                                    </span>
+                                    <span th:unless="${user.hasRole('EMAIL_VERIFIED')}" class="badge bg-secondary me-2">
+                                        <i class="fas fa-times me-1"></i>E-mail Verificado
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ações -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex gap-2">
+                                <a href="/dashboard" class="btn btn-primary">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Voltar ao Dashboard
+                                </a>
+                                
+                                <a href="/logout" class="btn btn-outline-danger">
+                                    <i class="fas fa-sign-out-alt me-2"></i>
+                                    Sair da Conta
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Card com Informações de Segurança -->
+            <div class="card mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Informações de Segurança
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Gerenciamento de Conta:</strong> 
+                        Suas informações de conta são gerenciadas pelo sistema Keycloak. 
+                        Para alterar dados pessoais, senha ou configurações de segurança, 
+                        acesse o portal de gerenciamento de conta do Keycloak.
+                    </div>
+                    
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <i class="fas fa-lock fa-2x text-success mb-2"></i>
+                            <h6>Autenticação Segura</h6>
+                            <small class="text-muted">OAuth 2.0 + OpenID Connect</small>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-key fa-2x text-primary mb-2"></i>
+                            <h6>Tokens JWT</h6>
+                            <small class="text-muted">Criptografia de ponta a ponta</small>
+                        </div>
+                        <div class="col-md-4">
+                            <i class="fas fa-user-shield fa-2x text-warning mb-2"></i>
+                            <h6>Controle de Acesso</h6>
+                            <small class="text-muted">Baseado em roles e permissões</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</html>
