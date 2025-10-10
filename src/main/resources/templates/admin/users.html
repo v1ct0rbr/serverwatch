@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout (~{::content})}">
+
+<div th:fragment="content">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-users me-2"></i>
+                    Gerenciamento de Usuários
+                </h2>
+                <div class="badge bg-primary fs-6" th:text="'Total: ' + ${userStats.totalActiveUsers()}">
+                    Total: 0
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Usuários Ativos
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold" th:text="${userStats.totalActiveUsers()}">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Novos Hoje
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold" th:text="${userStats.newUsersToday()}">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-plus fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                Ativos (24h)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold" th:text="${userStats.activeUsersLast24h()}">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros e Busca -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label">Buscar Usuário:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="searchInput" 
+                                       placeholder="Nome, email ou username...">
+                                <button class="btn btn-outline-primary" type="button" id="searchBtn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Ordenar por:</label>
+                            <select class="form-select" id="sortSelect">
+                                <option value="username">Username</option>
+                                <option value="email">Email</option>
+                                <option value="fullName">Nome Completo</option>
+                                <option value="lastLogin">Último Login</option>
+                                <option value="createdAt">Data de Criação</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Direção:</label>
+                            <select class="form-select" id="directionSelect">
+                                <option value="asc">Crescente</option>
+                                <option value="desc">Decrescente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary w-100" onclick="refreshUserList()">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                Atualizar Lista
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Usuários -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Lista de Usuários
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div th:if="${users != null and !users.empty}">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Nome Completo</th>
+                                        <th>Email</th>
+                                        <th>Roles</th>
+                                        <th>Último Login</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="user : ${users}">
+                                        <td>
+                                            <strong th:text="${user.username}">username</strong>
+                                            <br>
+                                            <small class="text-muted" th:text="'ID: ' + ${user.keycloakId}">ID</small>
+                                        </td>
+                                        <td th:text="${user.fullName} ?: 'Não informado'">Nome Completo</td>
+                                        <td>
+                                            <span th:text="${user.email}">email@example.com</span>
+                                        </td>
+                                        <td>
+                                            <div th:if="${user.applicationRoles != null and !user.applicationRoles.empty}">
+                                                <span th:each="role : ${user.applicationRoles}" 
+                                                      class="badge bg-secondary me-1 mb-1"
+                                                      th:text="${role}">
+                                                    ROLE
+                                                </span>
+                                            </div>
+                                            <span th:if="${user.applicationRoles == null or user.applicationRoles.empty}" 
+                                                  class="text-muted">Nenhuma role</span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${user.lastLogin}" 
+                                                  th:text="${#temporals.format(user.lastLogin, 'dd/MM/yyyy HH:mm')}">
+                                                Data/Hora
+                                            </span>
+                                            <span th:unless="${user.lastLogin}" class="text-muted">
+                                                Nunca logou
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span th:if="${user.active}" class="badge bg-success">
+                                                <i class="fas fa-check-circle me-1"></i>Ativo
+                                            </span>
+                                            <span th:unless="${user.active}" class="badge bg-danger">
+                                                <i class="fas fa-times-circle me-1"></i>Inativo
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <button th:if="${user.active}" 
+                                                        class="btn btn-outline-warning btn-sm" 
+                                                        th:onclick="'deactivateUser(\'' + ${user.keycloakId} + '\')'">
+                                                    <i class="fas fa-user-times"></i>
+                                                </button>
+                                                <button th:unless="${user.active}" 
+                                                        class="btn btn-outline-success btn-sm" 
+                                                        th:onclick="'activateUser(\'' + ${user.keycloakId} + '\')'">
+                                                    <i class="fas fa-user-check"></i>
+                                                </button>
+                                                <button class="btn btn-outline-info btn-sm" 
+                                                        th:onclick="'viewUserDetails(\'' + ${user.keycloakId} + '\')'">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div th:if="${users == null or users.empty}" class="text-center py-5">
+                        <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum usuário encontrado</h5>
+                        <p class="text-muted">
+                            Usuários aparecerão aqui após fazer login na aplicação pela primeira vez.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts específicos da página -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    
+    // Função para desativar usuário
+    function deactivateUser(keycloakId) {
+        if (confirm('Tem certeza que deseja desativar este usuário?')) {
+            fetch(`/admin/users/api/${keycloakId}/deactivate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    showNotification('Usuário desativado com sucesso', 'success');
+                    refreshUserList();
+                } else {
+                    throw new Error('Erro ao desativar usuário');
+                }
+            })
+            .catch(error => {
+                showNotification('Erro ao desativar usuário', 'error');
+                console.error('Error:', error);
+            });
+        }
+    }
+    
+    // Função para ativar usuário
+    function activateUser(keycloakId) {
+        if (confirm('Tem certeza que deseja reativar este usuário?')) {
+            fetch(`/admin/users/api/${keycloakId}/activate`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    showNotification('Usuário reativado com sucesso', 'success');
+                    refreshUserList();
+                } else {
+                    throw new Error('Erro ao reativar usuário');
+                }
+            })
+            .catch(error => {
+                showNotification('Erro ao reativar usuário', 'error');
+                console.error('Error:', error);
+            });
+        }
+    }
+    
+    // Função para visualizar detalhes do usuário
+    function viewUserDetails(keycloakId) {
+        // Implementar modal ou página de detalhes
+        alert('Funcionalidade de detalhes será implementada');
+    }
+    
+    // Função para atualizar lista de usuários
+    function refreshUserList() {
+        location.reload();
+    }
+    
+    // Função para mostrar notificações
+    function showNotification(message, type = 'info') {
+        const alertClass = type === 'success' ? 'alert-success' : 
+                          type === 'error' ? 'alert-danger' : 'alert-info';
+        
+        const notification = document.createElement('div');
+        notification.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.zIndex = '9999';
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+    }
+    
+    /*]]>*/
+</script>
+
+</html>

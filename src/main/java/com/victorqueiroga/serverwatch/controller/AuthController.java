@@ -1,7 +1,9 @@
 package com.victorqueiroga.serverwatch.controller;
 
+import com.victorqueiroga.serverwatch.model.User;
 import com.victorqueiroga.serverwatch.security.KeycloakUser;
 import com.victorqueiroga.serverwatch.security.KeycloakUserService;
+import com.victorqueiroga.serverwatch.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +31,8 @@ public class AuthController {
     @Value("${keycloak.realm}")
     private String realm;
     
-    private final KeycloakUserService userService;
+    private final KeycloakUserService keycloakUserService;
+    private final UserService userService;
 
     /**
      * Página de login
@@ -40,7 +43,7 @@ public class AuthController {
                            Model model) {
         
         // Se o usuário já está autenticado, redireciona para o dashboard
-        if (userService.isUserAuthenticated()) {
+        if (keycloakUserService.isUserAuthenticated()) {
             return "redirect:/dashboard";
         }
         
@@ -65,7 +68,7 @@ public class AuthController {
      */
     @GetMapping("/")
     public String homePage() {
-        if (userService.isUserAuthenticated()) {
+        if (keycloakUserService.isUserAuthenticated()) {
             return "redirect:/dashboard";
         }
         return "redirect:/login";
@@ -76,24 +79,36 @@ public class AuthController {
      */
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
-        KeycloakUser user = userService.getCurrentUser();
-        
-        if (user == null) {
-            return "redirect:/login";
+        try {
+            // Obter ou criar usuário local integrado com Keycloak
+            User localUser = userService.getOrCreateUser();
+            KeycloakUser keycloakUser = keycloakUserService.getCurrentUser();
+            
+            if (keycloakUser == null) {
+                return "redirect:/login";
+            }
+            
+            model.addAttribute("title", "Dashboard");
+            model.addAttribute("user", keycloakUser); // Para compatibilidade com templates
+            model.addAttribute("localUser", localUser); // Usuário local com dados específicos
+            model.addAttribute("userName", localUser.getFullName() != null ? localUser.getFullName() : keycloakUser.getFullName());
+            model.addAttribute("userEmail", localUser.getEmail());
+            
+            // Estatísticas de usuários
+            UserService.UserStats userStats = userService.getUserStats();
+            model.addAttribute("userStats", userStats);
+            
+            // Adicionar estatísticas fictícias (substituir por dados reais)
+            model.addAttribute("totalServers", 0);
+            model.addAttribute("onlineServers", 0);
+            model.addAttribute("offlineServers", 0);
+            model.addAttribute("pendingAlerts", 0);
+            
+            return "pages/dashboard";
+        } catch (Exception e) {
+            log.error("Erro ao carregar dashboard", e);
+            return "redirect:/login?error=true";
         }
-        
-        model.addAttribute("title", "Dashboard");
-        model.addAttribute("user", user);
-        model.addAttribute("userName", user.getFullName());
-        model.addAttribute("userEmail", user.getEmail());
-        
-        // Adicionar estatísticas fictícias (substituir por dados reais)
-        model.addAttribute("totalServers", 0);
-        model.addAttribute("onlineServers", 0);
-        model.addAttribute("offlineServers", 0);
-        model.addAttribute("pendingAlerts", 0);
-        
-        return "pages/dashboard";
     }
 
     /**
@@ -122,9 +137,15 @@ public class AuthController {
     @GetMapping("/access-denied")
     public String accessDenied(Model model) {
         model.addAttribute("title", "Acesso Negado");
-        KeycloakUser user = userService.getCurrentUser();
+        KeycloakUser user = keycloakUserService.getCurrentUser();
         if (user != null) {
             model.addAttribute("user", user);
+            try {
+                User localUser = userService.getOrCreateUser();
+                model.addAttribute("localUser", localUser);
+            } catch (Exception e) {
+                log.warn("Erro ao obter usuário local", e);
+            }
         }
         return "error/access-denied";
     }
@@ -134,16 +155,23 @@ public class AuthController {
      */
     @GetMapping("/profile")
     public String userProfile(Model model) {
-        KeycloakUser user = userService.getCurrentUser();
-        
-        if (user == null) {
-            return "redirect:/login";
+        try {
+            User localUser = userService.getOrCreateUser();
+            KeycloakUser keycloakUser = keycloakUserService.getCurrentUser();
+            
+            if (keycloakUser == null) {
+                return "redirect:/login";
+            }
+            
+            model.addAttribute("title", "Meu Perfil");
+            model.addAttribute("user", keycloakUser); // Para compatibilidade com templates
+            model.addAttribute("localUser", localUser); // Dados específicos da aplicação
+            
+            return "pages/profile";
+        } catch (Exception e) {
+            log.error("Erro ao carregar perfil do usuário", e);
+            return "redirect:/login?error=true";
         }
-        
-        model.addAttribute("title", "Meu Perfil");
-        model.addAttribute("user", user);
-        
-        return "pages/profile";
     }
 
     /**

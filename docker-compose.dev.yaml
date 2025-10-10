@@ -1,0 +1,39 @@
+services:
+  serverwatch-db:
+    image: postgres:latest
+    container_name: serverwatch-db
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_INITDB_ARGS=--data-checksums
+      - TZ=${TZ}
+    ports:
+      - "5435:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - serverwatch_network
+
+  serverwatch-flyway:
+    image: flyway/flyway:latest
+    container_name: serverwatch_flyway    
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
+      - FLYWAY_USER=${DATABASE_USER}
+      - FLYWAY_PASSWORD=${DATABASE_PASSWORD}
+      - TZ=${TZ}
+      
+    depends_on:
+      - serverwatch-db
+    networks:
+      - serverwatch_network
+    volumes:
+      - ./src/main/resources/db/migration:/flyway/sql  
+    entrypoint: ["flyway", "migrate"]
+
+volumes:
+  db_data:
+networks:
+  serverwatch_network:
+    driver: bridge
