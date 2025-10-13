@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout/main}">
+<head>
+    <title th:text="${pageTitle} + ' - ServerWatch'">Alerta - ServerWatch</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-0" th:text="${pageTitle}">Novo Alerta</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="/alerts">Alertas</a></li>
+                        <li class="breadcrumb-item active" th:text="${pageTitle}">Novo Alerta</li>
+                    </ol>
+                </nav>
+            </div>
+            <div>
+                <a href="/alerts" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    Voltar à Lista
+                </a>
+            </div>
+        </div>
+
+        <!-- Formulário -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-bell me-2"></i>
+                            Dados do Alerta
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{${alert.id != null ? '/alerts/' + alert.id : '/alerts'}}" 
+                              th:object="${alert}" 
+                              method="post">
+                            
+                            <!-- ID (hidden para edição) -->
+                            <input type="hidden" th:field="*{id}" th:if="${alert.id != null}">
+
+                            <div class="row g-3">
+                                <!-- Título -->
+                                <div class="col-12">
+                                    <label for="title" class="form-label required">Título</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           th:field="*{title}"
+                                           th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'"
+                                           id="title" 
+                                           placeholder="Digite o título do alerta"
+                                           maxlength="200"
+                                           required>
+                                    <div th:if="${#fields.hasErrors('title')}" class="invalid-feedback">
+                                        <span th:errors="*{title}"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Descrição -->
+                                <div class="col-12">
+                                    <label for="description" class="form-label required">Descrição</label>
+                                    <textarea class="form-control" 
+                                              th:field="*{description}"
+                                              th:classappend="${#fields.hasErrors('description')} ? 'is-invalid'"
+                                              id="description" 
+                                              rows="4"
+                                              placeholder="Descreva detalhadamente o alerta"
+                                              maxlength="2000"
+                                              required></textarea>
+                                    <div th:if="${#fields.hasErrors('description')}" class="invalid-feedback">
+                                        <span th:errors="*{description}"></span>
+                                    </div>
+                                    <div class="form-text">Máximo 2000 caracteres</div>
+                                </div>
+
+                                <!-- Servidor -->
+                                <div class="col-md-6">
+                                    <label for="server" class="form-label required">Servidor</label>
+                                    <select class="form-select" 
+                                            th:field="*{server.id}"
+                                            th:classappend="${#fields.hasErrors('server')} ? 'is-invalid'"
+                                            id="server" 
+                                            required>
+                                        <option value="">Selecione o servidor</option>
+                                        <option th:each="server : ${servers}" 
+                                               th:value="${server.id}" 
+                                               th:text="|${server.name} (${server.ipAddress})|">
+                                            Servidor
+                                        </option>
+                                    </select>
+                                    <div th:if="${#fields.hasErrors('server')}" class="invalid-feedback">
+                                        <span th:errors="*{server}"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Severidade -->
+                                <div class="col-md-6">
+                                    <label for="severity" class="form-label required">Severidade</label>
+                                    <select class="form-select" 
+                                            th:field="*{severity.id}"
+                                            th:classappend="${#fields.hasErrors('severity')} ? 'is-invalid'"
+                                            id="severity" 
+                                            required>
+                                        <option value="">Selecione a severidade</option>
+                                        <option th:each="severity : ${severities}" 
+                                               th:value="${severity.id}" 
+                                               th:text="${severity.name}"
+                                               th:data-level="${severity.level}">
+                                            Severidade
+                                        </option>
+                                    </select>
+                                    <div th:if="${#fields.hasErrors('severity')}" class="invalid-feedback">
+                                        <span th:errors="*{severity}"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Tipo do Alerta -->
+                                <div class="col-md-6">
+                                    <label for="alertType" class="form-label">Tipo do Alerta</label>
+                                    <select class="form-select" 
+                                            th:field="*{alertType}"
+                                            id="alertType">
+                                        <option th:each="type : ${alertTypes}" 
+                                               th:value="${type}" 
+                                               th:text="${type.displayName}">
+                                            Tipo
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Status -->
+                                <div class="col-md-6">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-select" 
+                                            th:field="*{status}"
+                                            id="status">
+                                        <option th:each="status : ${alertStatuses}" 
+                                               th:value="${status}" 
+                                               th:text="${status.displayName}">
+                                            Status
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Métrica -->
+                                <div class="col-md-6">
+                                    <label for="metricName" class="form-label">Métrica Relacionada</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           th:field="*{metricName}"
+                                           id="metricName" 
+                                           placeholder="Ex: CPU_USAGE, MEMORY_USAGE"
+                                           maxlength="100">
+                                    <div class="form-text">Nome da métrica que gerou o alerta (opcional)</div>
+                                </div>
+
+                                <!-- Valor Atual -->
+                                <div class="col-md-3">
+                                    <label for="currentValue" class="form-label">Valor Atual</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           th:field="*{currentValue}"
+                                           id="currentValue" 
+                                           placeholder="Ex: 85.5%"
+                                           maxlength="200">
+                                </div>
+
+                                <!-- Valor Limite -->
+                                <div class="col-md-3">
+                                    <label for="thresholdValue" class="form-label">Valor Limite</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           th:field="*{thresholdValue}"
+                                           id="thresholdValue" 
+                                           placeholder="Ex: 80.0%"
+                                           maxlength="200">
+                                </div>
+
+                                <!-- Dados Adicionais -->
+                                <div class="col-12">
+                                    <label for="additionalData" class="form-label">Dados Adicionais (JSON)</label>
+                                    <textarea class="form-control" 
+                                              th:field="*{additionalData}"
+                                              id="additionalData" 
+                                              rows="3"
+                                              placeholder='{"key": "value", "metadata": {...}}'></textarea>
+                                    <div class="form-text">Dados adicionais em formato JSON (opcional)</div>
+                                </div>
+
+                                <!-- Comentário de Resolução (apenas para edição) -->
+                                <div class="col-12" th:if="${alert.id != null and alert.resolved}">
+                                    <label for="resolutionComment" class="form-label">Comentário de Resolução</label>
+                                    <textarea class="form-control" 
+                                              th:field="*{resolutionComment}"
+                                              id="resolutionComment" 
+                                              rows="3"
+                                              maxlength="1000"
+                                              readonly></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Botões de Ação -->
+                            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                                <div>
+                                    <a href="/alerts" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i>
+                                        Cancelar
+                                    </a>
+                                </div>
+                                <div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>
+                                        <span th:text="${alert.id != null ? 'Atualizar Alerta' : 'Salvar Alerta'}">
+                                            Salvar Alerta
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar com Informações -->
+            <div class="col-lg-4">
+                <!-- Instruções -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Instruções
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Preencha título e descrição detalhados
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Selecione o servidor e severidade apropriados
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Inclua informações da métrica se aplicável
+                            </li>
+                            <li class="mb-0">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Use dados adicionais para contexto extra
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Tipos de Alerta -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-tags me-2"></i>
+                            Tipos de Alerta
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-6" th:each="type : ${alertTypes}">
+                                <span class="badge w-100 p-2" 
+                                      th:classappend="'bg-' + ${type.bootstrapClass}"
+                                      th:text="${type.displayName}">
+                                    Tipo
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Níveis de Severidade -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Níveis de Severidade
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div th:each="severity : ${severities}" class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge" 
+                                  th:classappend="'bg-' + ${severity.bootstrapClass}"
+                                  th:text="${severity.name}">
+                                Severidade
+                            </span>
+                            <small class="text-muted" th:text="'Nível ' + ${severity.level}">Nível 1</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script layout:fragment="scripts">
+        // Validação de formulário
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const titleInput = document.getElementById('title');
+            const descriptionInput = document.getElementById('description');
+
+            // Contador de caracteres para descrição
+            const descriptionCounter = document.createElement('small');
+            descriptionCounter.className = 'form-text text-muted';
+            descriptionInput.parentNode.appendChild(descriptionCounter);
+
+            function updateDescriptionCounter() {
+                const remaining = 2000 - descriptionInput.value.length;
+                descriptionCounter.textContent = remaining + ' caracteres restantes';
+                
+                if (remaining < 100) {
+                    descriptionCounter.className = 'form-text text-warning';
+                } else if (remaining < 0) {
+                    descriptionCounter.className = 'form-text text-danger';
+                } else {
+                    descriptionCounter.className = 'form-text text-muted';
+                }
+            }
+
+            descriptionInput.addEventListener('input', updateDescriptionCounter);
+            updateDescriptionCounter();
+
+            // Validação antes do envio
+            form.addEventListener('submit', function(e) {
+                let isValid = true;
+
+                // Validar título
+                if (titleInput.value.trim().length === 0) {
+                    titleInput.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    titleInput.classList.remove('is-invalid');
+                }
+
+                // Validar descrição
+                if (descriptionInput.value.trim().length === 0) {
+                    descriptionInput.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    descriptionInput.classList.remove('is-invalid');
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Preview de dados adicionais JSON
+        const additionalDataInput = document.getElementById('additionalData');
+        additionalDataInput.addEventListener('blur', function() {
+            if (this.value.trim()) {
+                try {
+                    JSON.parse(this.value);
+                    this.classList.remove('is-invalid');
+                } catch (e) {
+                    this.classList.add('is-invalid');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

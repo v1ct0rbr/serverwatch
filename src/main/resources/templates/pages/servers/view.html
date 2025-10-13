@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Servidor: ' + ${server.name} + ' - ServerWatch'">Servidor - ServerWatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <!-- Navbar -->
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <div class="container-fluid mt-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/servers}">Servidores</a></li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${server.name}">Servidor</li>
+            </ol>
+        </nav>
+
+        <!-- Alertas -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Cabeçalho do servidor -->
+        <div class="row mb-4">
+            <div class="col">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="bi bi-server text-primary" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <div>
+                                        <h2 class="mb-1" th:text="${server.name}">Nome do Servidor</h2>
+                                        <p class="text-muted mb-1">
+                                            <i class="bi bi-router me-1"></i>
+                                            <code th:text="${server.ipAddress}">192.168.1.100</code>
+                                        </p>
+                                        <span class="badge bg-info" th:text="${server.operationSystem.name}">Ubuntu 20.04</span>
+                                        <span class="badge bg-success ms-2">
+                                            <i class="bi bi-circle-fill me-1"></i>Online
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="btn-group" role="group">
+                                    <a th:href="@{/servers/{id}/edit(id=${server.id})}" 
+                                       class="btn btn-warning">
+                                        <i class="bi bi-pencil me-1"></i>Editar
+                                    </a>
+                                    <button type="button" 
+                                            class="btn btn-danger" 
+                                            onclick="confirmDelete()"
+                                            th:data-id="${server.id}"
+                                            th:data-name="${server.name}">
+                                        <i class="bi bi-trash me-1"></i>Excluir
+                                    </button>
+                                </div>
+                                <div class="mt-2">
+                                    <a th:href="@{/servers}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-arrow-left me-1"></i>Voltar à Lista
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Informações Básicas -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-info-circle me-2"></i>Informações Básicas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr>
+                                    <td class="fw-bold text-muted">ID:</td>
+                                    <td th:text="${server.id}">#1</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Nome:</td>
+                                    <td th:text="${server.name}">Servidor Principal</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Endereço IP:</td>
+                                    <td>
+                                        <code th:text="${server.ipAddress}">192.168.1.100</code>
+                                        <a href="#" class="ms-2 text-decoration-none" onclick="copyToClipboard(this)" th:data-text="${server.ipAddress}">
+                                            <i class="bi bi-clipboard" title="Copiar IP"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Sistema Operacional:</td>
+                                    <td>
+                                        <span class="badge bg-info" th:text="${server.operationSystem.name}">Ubuntu 20.04</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Status:</td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-circle-fill me-1"></i>Online
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status de Conectividade -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-activity me-2"></i>Status de Conectividade
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="text-success mb-2">
+                                        <i class="bi bi-wifi" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h6 class="mb-0">Conectividade</h6>
+                                    <span class="badge bg-success">Ativa</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center">
+                                    <div class="text-primary mb-2">
+                                        <i class="bi bi-speedometer2" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h6 class="mb-0">Latência</h6>
+                                    <span class="text-muted">12ms</span>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Última verificação:</small>
+                            <small class="text-muted">há 30 segundos</small>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-outline-primary btn-sm w-100">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Testar Conectividade
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estatísticas Rápidas -->
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up me-2"></i>Estatísticas de Monitoramento
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="text-success mb-2">
+                                        <i class="bi bi-check-circle" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1">Uptime</h6>
+                                    <div class="fw-bold text-success">99.8%</div>
+                                    <small class="text-muted">Últimos 30 dias</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="text-info mb-2">
+                                        <i class="bi bi-clock" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1">Tempo Médio</h6>
+                                    <div class="fw-bold text-info">15ms</div>
+                                    <small class="text-muted">Resposta</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="text-warning mb-2">
+                                        <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1">Alertas</h6>
+                                    <div class="fw-bold text-warning">3</div>
+                                    <small class="text-muted">Este mês</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <div class="text-danger mb-2">
+                                        <i class="bi bi-x-circle" style="font-size: 1.5rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1">Falhas</h6>
+                                    <div class="fw-bold text-danger">1</div>
+                                    <small class="text-muted">Este mês</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações Rápidas -->
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-lightning me-2"></i>Ações Rápidas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-primary w-100">
+                                    <i class="bi bi-activity me-2"></i>
+                                    <div>Monitorar Agora</div>
+                                    <small class="d-block text-muted">Executar verificação manual</small>
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-info w-100">
+                                    <i class="bi bi-graph-up me-2"></i>
+                                    <div>Ver Relatórios</div>
+                                    <small class="d-block text-muted">Histórico de monitoramento</small>
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-warning w-100">
+                                    <i class="bi bi-bell me-2"></i>
+                                    <div>Configurar Alertas</div>
+                                    <small class="d-block text-muted">Definir notificações</small>
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-outline-secondary w-100">
+                                    <i class="bi bi-terminal me-2"></i>
+                                    <div>Logs do Sistema</div>
+                                    <small class="d-block text-muted">Visualizar logs</small>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação de exclusão -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle text-danger me-2"></i>Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir o servidor <strong th:text="${server.name}">Servidor</strong>?</p>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <strong>Atenção:</strong> Esta ação irá remover permanentemente:
+                        <ul class="mb-0 mt-2">
+                            <li>Todas as configurações de monitoramento</li>
+                            <li>Histórico de alertas e relatórios</li>
+                            <li>Dados de performance acumulados</li>
+                        </ul>
+                    </div>
+                    <p class="text-muted small mb-0">Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form id="deleteForm" method="post" class="d-inline" th:action="@{/servers/{id}/delete(id=${server.id})}">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Excluir Servidor
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/main.js}"></script>
+    <script>
+        // Função para confirmar exclusão
+        function confirmDelete() {
+            const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+
+        // Função para copiar texto para clipboard
+        function copyToClipboard(element) {
+            const textToCopy = element.getAttribute('data-text');
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(function() {
+                    showCopyFeedback(element);
+                });
+            } else {
+                // Fallback para navegadores mais antigos
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showCopyFeedback(element);
+                } catch (err) {
+                    console.error('Erro ao copiar texto:', err);
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function showCopyFeedback(element) {
+            const icon = element.querySelector('i');
+            const originalClass = icon.className;
+            
+            icon.className = 'bi bi-check text-success';
+            
+            setTimeout(() => {
+                icon.className = originalClass;
+            }, 2000);
+        }
+
+        // Atualizar dados em tempo real (simulação)
+        function updateStats() {
+            // Aqui você pode implementar chamadas AJAX para atualizar os dados em tempo real
+            console.log('Atualizando estatísticas...');
+        }
+
+        // Atualizar a cada 30 segundos
+        setInterval(updateStats, 30000);
+    </script>
+</body>
+</html>

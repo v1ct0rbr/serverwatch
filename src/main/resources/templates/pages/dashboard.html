@@ -91,21 +91,111 @@
         </div>
     </div>
 
+    <!-- Ações Rápidas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">
+                <i class="fas fa-bolt me-2"></i>Ações Rápidas
+            </h4>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 border-primary">
+                <div class="card-body text-center">
+                    <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Adicionar Servidor</h5>
+                    <p class="card-text text-muted">Configure um novo servidor para monitoramento</p>
+                    <a th:href="@{/servers/new}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Novo Servidor
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-list fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Ver Servidores</h5>
+                    <p class="card-text text-muted">Visualize e gerencie todos os servidores</p>
+                    <a th:href="@{/servers}" class="btn btn-info">
+                        <i class="fas fa-server me-1"></i>Lista de Servidores
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Monitoramento</h5>
+                    <p class="card-text text-muted">Acompanhe o status em tempo real</p>
+                    <a th:href="@{/monitoring}" class="btn btn-success">
+                        <i class="fas fa-eye me-1"></i>Ver Monitoramento
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card h-100 border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-bell fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">Alertas</h5>
+                    <p class="card-text text-muted">Configure e visualize alertas</p>
+                    <a th:href="@{/alerts}" class="btn btn-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Ver Alertas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Conteúdo Principal -->
     <div class="row">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="fas fa-list me-2"></i>
-                        Status dos Servidores
+                        <i class="fas fa-list me-2"></i>Status dos Servidores
                     </h5>
+                    <a th:href="@{/servers}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-external-link-alt me-1"></i>Ver Todos
+                    </a>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-info" role="alert">
                         <i class="fas fa-info-circle me-2"></i>
                         Nenhum servidor configurado ainda. 
-                        <a th:href="@{/servers}" class="alert-link">Clique aqui para adicionar seu primeiro servidor</a>.
+                        <a th:href="@{/servers/new}" class="alert-link">Clique aqui para adicionar seu primeiro servidor</a>.
+                    </div>
+                    
+                    <!-- Esta seção será preenchida dinamicamente com dados dos servidores -->
+                    <div class="row d-none" id="servers-summary">
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-server fa-2x text-primary me-3"></i>
+                                <div>
+                                    <h6 class="mb-0">Total de Servidores</h6>
+                                    <span class="text-muted" data-metric="total-servers">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle fa-2x text-success me-3"></i>
+                                <div>
+                                    <h6 class="mb-0">Online</h6>
+                                    <span class="text-success" data-metric="online-servers">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-times-circle fa-2x text-danger me-3"></i>
+                                <div>
+                                    <h6 class="mb-0">Offline</h6>
+                                    <span class="text-danger" data-metric="offline-servers">0</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

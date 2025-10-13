@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout/main}">
+<head>
+    <title>Alertas - ServerWatch</title>
+    <style>
+        .alert-badge {
+            font-size: 0.75rem;
+        }
+        .alert-row.resolved {
+            opacity: 0.7;
+        }
+        .metrics-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .filter-card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+    </style>
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-bell text-warning me-2"></i>
+                    Alertas do Sistema
+                </h1>
+                <p class="text-muted mb-0">Gerencie e monitore alertas de infraestrutura</p>
+            </div>
+            <div>
+                <a href="/alerts/new" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>
+                    Novo Alerta
+                </a>
+            </div>
+        </div>
+
+        <!-- Métricas Resumo -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card metrics-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-1">Alertas Ativos</h6>
+                                <h2 class="mb-0" th:text="${totalAlerts}">0</h2>
+                            </div>
+                            <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-1">Alertas Críticos</h6>
+                                <h2 class="mb-0" th:text="${criticalAlerts}">0</h2>
+                            </div>
+                            <i class="fas fa-exclamation-circle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="card filter-card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Filtros
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="get" action="/alerts">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Servidor</label>
+                            <select name="serverId" class="form-select">
+                                <option value="">Todos os servidores</option>
+                                <option th:each="server : ${servers}" 
+                                       th:value="${server.id}" 
+                                       th:text="${server.name}"
+                                       th:selected="${server.id == currentServerId}">
+                                    Servidor
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Severidade</label>
+                            <select name="severityId" class="form-select">
+                                <option value="">Todas as severidades</option>
+                                <option th:each="severity : ${severities}" 
+                                       th:value="${severity.id}" 
+                                       th:text="${severity.name}"
+                                       th:selected="${severity.id == currentSeverityId}">
+                                    Severidade
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">Todos os status</option>
+                                <option th:each="status : ${alertStatuses}" 
+                                       th:value="${status}" 
+                                       th:text="${status.displayName}"
+                                       th:selected="${status.name() == currentStatus}">
+                                    Status
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Tipo</label>
+                            <select name="alertType" class="form-select">
+                                <option value="">Todos os tipos</option>
+                                <option th:each="type : ${alertTypes}" 
+                                       th:value="${type}" 
+                                       th:text="${type.displayName}"
+                                       th:selected="${type.name() == currentAlertType}">
+                                    Tipo
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-search me-1"></i>
+                                Filtrar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-4">
+                            <label class="form-label">Título</label>
+                            <input type="text" name="title" class="form-control" 
+                                   th:value="${currentTitle}" placeholder="Buscar por título...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Resolvido</label>
+                            <select name="resolved" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="false" th:selected="${currentResolved == false}">Não resolvidos</option>
+                                <option value="true" th:selected="${currentResolved == true}">Resolvidos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Itens por página</label>
+                            <select name="size" class="form-select" onchange="this.form.submit()">
+                                <option value="10" th:selected="${currentSize == 10}">10</option>
+                                <option value="25" th:selected="${currentSize == 25}">25</option>
+                                <option value="50" th:selected="${currentSize == 50}">50</option>
+                                <option value="100" th:selected="${currentSize == 100}">100</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <a href="/alerts" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-times me-1"></i>
+                                Limpar
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de Alertas -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0">
+                    Lista de Alertas
+                    <span class="badge bg-secondary ms-2" th:text="${alerts.totalElements}">0</span>
+                </h6>
+                <div>
+                    <div class="btn-group btn-group-sm">
+                        <a href="#" class="btn btn-outline-primary" onclick="refreshAlerts()">
+                            <i class="fas fa-sync-alt"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div th:if="${alerts.isEmpty()}" class="text-center py-5">
+                    <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhum alerta encontrado</h5>
+                    <p class="text-muted mb-3">Não há alertas que correspondam aos filtros selecionados.</p>
+                    <a href="/alerts/new" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>
+                        Criar Primeiro Alerta
+                    </a>
+                </div>
+
+                <div th:unless="${alerts.isEmpty()}" class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>
+                                    <a th:href="@{/alerts(page=${currentPage},size=${currentSize},sortBy='title',sortDir=${currentSortBy == 'title' and currentSortDir == 'asc' ? 'desc' : 'asc'})}" 
+                                       class="text-decoration-none text-dark">
+                                        Título
+                                        <i th:if="${currentSortBy == 'title'}" 
+                                           th:class="${currentSortDir == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"
+                                           class="ms-1"></i>
+                                    </a>
+                                </th>
+                                <th>Servidor</th>
+                                <th>Severidade</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>
+                                    <a th:href="@{/alerts(page=${currentPage},size=${currentSize},sortBy='createdAt',sortDir=${currentSortBy == 'createdAt' and currentSortDir == 'asc' ? 'desc' : 'asc'})}" 
+                                       class="text-decoration-none text-dark">
+                                        Criado em
+                                        <i th:if="${currentSortBy == 'createdAt'}" 
+                                           th:class="${currentSortDir == 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'}"
+                                           class="ms-1"></i>
+                                    </a>
+                                </th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="alert : ${alerts.content}" 
+                                th:class="${alert.resolved} ? 'alert-row resolved' : 'alert-row'">
+                                <td>
+                                    <div>
+                                        <strong th:text="${alert.title}">Título do Alerta</strong>
+                                        <div th:if="${alert.metricName}" class="text-muted small">
+                                            <i class="fas fa-chart-line me-1"></i>
+                                            <span th:text="${alert.metricName}">CPU_USAGE</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-server me-2 text-primary"></i>
+                                        <div>
+                                            <div th:text="${alert.server.name}">Nome do Servidor</div>
+                                            <small class="text-muted" th:text="${alert.server.ipAddress}">192.168.1.1</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge alert-badge" 
+                                          th:classappend="'bg-' + ${alert.severity.bootstrapClass}"
+                                          th:text="${alert.severity.name}">
+                                        Critical
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge alert-badge" 
+                                          th:classappend="'bg-' + ${alert.alertType.bootstrapClass}"
+                                          th:text="${alert.alertType.displayName}">
+                                        Monitoramento
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge alert-badge" 
+                                          th:classappend="'bg-' + ${alert.status.bootstrapClass}"
+                                          th:text="${alert.status.displayName}">
+                                        Aberto
+                                    </span>
+                                </td>
+                                <td>
+                                    <div th:text="${#temporals.format(alert.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2024 10:00</div>
+                                    <small class="text-muted" 
+                                           th:text="'há ' + ${#temporals.format(T(java.time.Duration).between(alert.createdAt, T(java.time.LocalDateTime).now()).toHours(), '0')} + ' horas'">
+                                        há 2 horas
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a th:href="@{'/alerts/' + ${alert.id}}" 
+                                           class="btn btn-outline-info" 
+                                           title="Ver detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a th:href="@{'/alerts/' + ${alert.id} + '/edit'}" 
+                                           class="btn btn-outline-warning" 
+                                           title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn btn-outline-danger" 
+                                                title="Excluir"
+                                                th:onclick="|confirmDelete(${alert.id}, '${alert.title}')|">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Paginação -->
+            <div th:if="${alerts.totalPages > 1}" class="card-footer">
+                <nav>
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        <li class="page-item" th:classappend="${alerts.first} ? 'disabled'">
+                            <a class="page-link" 
+                               th:href="@{/alerts(page=${alerts.number - 1},size=${currentSize},sortBy=${currentSortBy},sortDir=${currentSortDir})}">
+                                Anterior
+                            </a>
+                        </li>
+                        
+                        <li th:each="i : ${#numbers.sequence(0, alerts.totalPages - 1)}" 
+                            class="page-item" 
+                            th:classappend="${i == alerts.number} ? 'active'">
+                            <a class="page-link" 
+                               th:href="@{/alerts(page=${i},size=${currentSize},sortBy=${currentSortBy},sortDir=${currentSortDir})}"
+                               th:text="${i + 1}">1</a>
+                        </li>
+                        
+                        <li class="page-item" th:classappend="${alerts.last} ? 'disabled'">
+                            <a class="page-link" 
+                               th:href="@{/alerts(page=${alerts.number + 1},size=${currentSize},sortBy=${currentSortBy},sortDir=${currentSortDir})}">
+                                Próximo
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir o alerta <strong id="alertTitle"></strong>?</p>
+                    <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form id="deleteForm" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i>
+                            Excluir
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script layout:fragment="scripts">
+        function confirmDelete(alertId, alertTitle) {
+            document.getElementById('alertTitle').textContent = alertTitle;
+            document.getElementById('deleteForm').action = '/alerts/' + alertId + '/delete';
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+
+        function refreshAlerts() {
+            window.location.reload();
+        }
+
+        // Auto-refresh a cada 30 segundos se houver alertas ativos
+        /*<![CDATA[*/
+        var totalAlerts = /*[[${totalAlerts}]]*/ 0;
+        if (totalAlerts > 0) {
+            setTimeout(function() {
+                window.location.reload();
+            }, 30000);
+        }
+        /*]]>*/
+    </script>
+</body>
+</html>

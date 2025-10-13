@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servidores Monitorados - ServerWatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <!-- Navbar -->
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <div class="container-fluid mt-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Servidores</li>
+            </ol>
+        </nav>
+
+        <!-- Título e ações -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1">
+                    <i class="bi bi-server me-2"></i>Servidores Monitorados
+                </h2>
+                <p class="text-muted mb-0">
+                    Gerencie os servidores que estão sendo monitorados pelo sistema
+                </p>
+            </div>
+            <div>
+                <a th:href="@{/servers/new}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i>Novo Servidor
+                </a>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Filtros e busca -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form th:action="@{/servers}" method="get" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="search" class="form-label">Buscar Servidor</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="search" 
+                                   name="search"
+                                   th:value="${search}"
+                                   placeholder="Nome do servidor ou endereço IP">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="size" class="form-label">Itens por página</label>
+                        <select class="form-select" name="size" id="size">
+                            <option value="5" th:selected="${param.size != null and param.size[0] == '5'}">5</option>
+                            <option value="10" th:selected="${param.size == null or param.size[0] == '10'}">10</option>
+                            <option value="25" th:selected="${param.size != null and param.size[0] == '25'}">25</option>
+                            <option value="50" th:selected="${param.size != null and param.size[0] == '50'}">50</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary me-2">
+                            <i class="bi bi-funnel me-1"></i>Filtrar
+                        </button>
+                        <a th:href="@{/servers}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Limpar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de servidores -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    Lista de Servidores 
+                    <span class="badge bg-secondary ms-2" th:text="${totalElements}">0</span>
+                </h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <input type="radio" class="btn-check" name="view" id="tableView" autocomplete="off" checked>
+                    <label class="btn btn-outline-secondary" for="tableView">
+                        <i class="bi bi-table"></i>
+                    </label>
+                    <input type="radio" class="btn-check" name="view" id="cardView" autocomplete="off">
+                    <label class="btn btn-outline-secondary" for="cardView">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                    </label>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <!-- Visualização em tabela -->
+                <div id="table-view">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>
+                                        <a th:href="@{/servers(sort='name', direction=${sort == 'name' and direction == 'asc' ? 'desc' : 'asc'})}" 
+                                           class="text-decoration-none text-white">
+                                            Nome
+                                            <i class="bi" 
+                                               th:classappend="${sort == 'name' ? (direction == 'asc' ? 'bi-sort-up' : 'bi-sort-down') : 'bi-sort'}"></i>
+                                        </a>
+                                    </th>
+                                    <th>
+                                        <a th:href="@{/servers(sort='ipAddress', direction=${sort == 'ipAddress' and direction == 'asc' ? 'desc' : 'asc'})}" 
+                                           class="text-decoration-none text-white">
+                                            Endereço IP
+                                            <i class="bi" 
+                                               th:classappend="${sort == 'ipAddress' ? (direction == 'asc' ? 'bi-sort-up' : 'bi-sort-down') : 'bi-sort'}"></i>
+                                        </a>
+                                    </th>
+                                    <th>Sistema Operacional</th>
+                                    <th>Status</th>
+                                    <th width="150">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:if="${servers.empty}">
+                                    <td colspan="5" class="text-center py-4 text-muted">
+                                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                        Nenhum servidor encontrado
+                                    </td>
+                                </tr>
+                                <tr th:each="server : ${servers.content}" th:unless="${servers.empty}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-server me-2 text-primary"></i>
+                                            <a th:href="@{/servers/{id}(id=${server.id})}" 
+                                               class="fw-semibold text-decoration-none"
+                                               th:text="${server.name}">Nome do Servidor</a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <code th:text="${server.ipAddress}">192.168.1.1</code>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info" th:text="${server.operationSystem.name}">Ubuntu 20.04</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-circle-fill me-1"></i>Online
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a th:href="@{/servers/{id}(id=${server.id})}" 
+                                               class="btn btn-outline-primary" 
+                                               title="Visualizar">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a th:href="@{/servers/{id}/edit(id=${server.id})}" 
+                                               class="btn btn-outline-warning" 
+                                               title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger" 
+                                                    title="Excluir"
+                                                    onclick="confirmDelete(this)"
+                                                    th:data-id="${server.id}"
+                                                    th:data-name="${server.name}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Visualização em cards -->
+                <div id="card-view" class="d-none">
+                    <div class="p-3">
+                        <div class="row g-3">
+                            <div class="col-12" th:if="${servers.empty}">
+                                <div class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox display-1 d-block mb-3"></i>
+                                    <h5>Nenhum servidor encontrado</h5>
+                                    <p>Adicione um novo servidor para começar o monitoramento</p>
+                                    <a th:href="@{/servers/new}" class="btn btn-primary">
+                                        <i class="bi bi-plus-lg me-1"></i>Adicionar Servidor
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-lg-4" th:each="server : ${servers.content}" th:unless="${servers.empty}">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="card-title mb-0">
+                                                <i class="bi bi-server me-1 text-primary"></i>
+                                                <span th:text="${server.name}">Nome do Servidor</span>
+                                            </h6>
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-circle-fill me-1"></i>Online
+                                            </span>
+                                        </div>
+                                        <p class="card-text">
+                                            <small class="text-muted">IP:</small> 
+                                            <code th:text="${server.ipAddress}">192.168.1.1</code>
+                                        </p>
+                                        <p class="card-text">
+                                            <small class="text-muted">SO:</small> 
+                                            <span class="badge bg-info" th:text="${server.operationSystem.name}">Ubuntu 20.04</span>
+                                        </p>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <div class="btn-group w-100" role="group">
+                                            <a th:href="@{/servers/{id}(id=${server.id})}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-eye me-1"></i>Ver
+                                            </a>
+                                            <a th:href="@{/servers/{id}/edit(id=${server.id})}" 
+                                               class="btn btn-outline-warning btn-sm">
+                                                <i class="bi bi-pencil me-1"></i>Editar
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger btn-sm" 
+                                                    onclick="confirmDelete(this)"
+                                                    th:data-id="${server.id}"
+                                                    th:data-name="${server.name}">
+                                                <i class="bi bi-trash me-1"></i>Excluir
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Paginação -->
+            <div class="card-footer" th:if="${totalPages > 1}">
+                <nav aria-label="Navegação de páginas">
+                    <ul class="pagination justify-content-center mb-0">
+                        <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                            <a class="page-link" 
+                               th:href="@{/servers(page=${currentPage - 1}, size=${param.size}, sort=${sort}, direction=${direction}, search=${search})}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        
+                        <li th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}" 
+                            class="page-item" 
+                            th:classappend="${pageNum == currentPage} ? 'active'">
+                            <a class="page-link" 
+                               th:href="@{/servers(page=${pageNum}, size=${param.size}, sort=${sort}, direction=${direction}, search=${search})}"
+                               th:text="${pageNum + 1}">1</a>
+                        </li>
+                        
+                        <li class="page-item" th:classappend="${currentPage >= totalPages - 1} ? 'disabled'">
+                            <a class="page-link" 
+                               th:href="@{/servers(page=${currentPage + 1}, size=${param.size}, sort=${sort}, direction=${direction}, search=${search})}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de confirmação de exclusão -->
+    <div class="modal fade" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle text-danger me-2"></i>Confirmar Exclusão
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir o servidor <strong id="serverName"></strong>?</p>
+                    <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form id="deleteForm" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Excluir
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/main.js}"></script>
+    <script>
+        // Alternar entre visualizações
+        document.getElementById('tableView').addEventListener('change', function() {
+            document.getElementById('table-view').classList.remove('d-none');
+            document.getElementById('card-view').classList.add('d-none');
+        });
+
+        document.getElementById('cardView').addEventListener('change', function() {
+            document.getElementById('table-view').classList.add('d-none');
+            document.getElementById('card-view').classList.remove('d-none');
+        });
+
+        // Função para confirmar exclusão
+        function confirmDelete(button) {
+            const serverId = button.getAttribute('data-id');
+            const serverName = button.getAttribute('data-name');
+            
+            document.getElementById('serverName').textContent = serverName;
+            document.getElementById('deleteForm').action = '/servers/' + serverId + '/delete';
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+    </script>
+</body>
+</html>

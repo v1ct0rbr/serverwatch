@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout/main}">
+<head>
+    <title th:text="'Alerta: ' + ${alert.title} + ' - ServerWatch'">Detalhes do Alerta - ServerWatch</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <h1 class="h3 mb-1" th:text="${alert.title}">Título do Alerta</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="/alerts">Alertas</a></li>
+                        <li class="breadcrumb-item active">Detalhes</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/alerts" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    Voltar à Lista
+                </a>
+                <a th:href="@{'/alerts/' + ${alert.id} + '/edit'}" class="btn btn-warning">
+                    <i class="fas fa-edit me-1"></i>
+                    Editar
+                </a>
+            </div>
+        </div>
+
+        <!-- Status Badges -->
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <span class="badge fs-6 px-3 py-2" 
+                  th:classappend="'bg-' + ${alert.severity.bootstrapClass}"
+                  th:text="${alert.severity.name}">
+                Critical
+            </span>
+            <span class="badge fs-6 px-3 py-2" 
+                  th:classappend="'bg-' + ${alert.status.bootstrapClass}"
+                  th:text="${alert.status.displayName}">
+                Aberto
+            </span>
+            <span class="badge fs-6 px-3 py-2" 
+                  th:classappend="'bg-' + ${alert.alertType.bootstrapClass}"
+                  th:text="${alert.alertType.displayName}">
+                Monitoramento
+            </span>
+            <span th:if="${alert.resolved}" class="badge bg-success fs-6 px-3 py-2">
+                Resolvido
+            </span>
+        </div>
+
+        <div class="row">
+            <!-- Informações Principais -->
+            <div class="col-lg-8">
+                <!-- Descrição -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-file-alt me-2"></i>
+                            Descrição do Alerta
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0" th:text="${alert.description}">Descrição detalhada do alerta...</p>
+                    </div>
+                </div>
+
+                <!-- Informações do Servidor -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-server me-2"></i>
+                            Servidor Relacionado
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Nome:</strong>
+                                <p th:text="${alert.server.name}">Nome do Servidor</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Endereço IP:</strong>
+                                <p th:text="${alert.server.ipAddress}">192.168.1.100</p>
+                            </div>
+                            <div class="col-md-6" th:if="${alert.server.description}">
+                                <strong>Descrição:</strong>
+                                <p th:text="${alert.server.description}">Descrição do servidor</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Status:</strong>
+                                <span class="badge" 
+                                      th:classappend="'bg-' + ${alert.server.status.name() == 'ACTIVE' ? 'success' : 'danger'}"
+                                      th:text="${alert.server.status.displayName}">
+                                    Ativo
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a th:href="@{'/servers/' + ${alert.server.id}}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-external-link-alt me-1"></i>
+                                Ver Detalhes do Servidor
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Informações da Métrica -->
+                <div th:if="${alert.metricName}" class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Informações da Métrica
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Métrica:</strong>
+                                <p th:text="${alert.metricName}">CPU_USAGE</p>
+                            </div>
+                            <div class="col-md-4" th:if="${alert.currentValue}">
+                                <strong>Valor Atual:</strong>
+                                <p th:text="${alert.currentValue}">85.5%</p>
+                            </div>
+                            <div class="col-md-4" th:if="${alert.thresholdValue}">
+                                <strong>Valor Limite:</strong>
+                                <p th:text="${alert.thresholdValue}">80.0%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados Adicionais -->
+                <div th:if="${alert.additionalData}" class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-code me-2"></i>
+                            Dados Adicionais
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <pre class="bg-light p-3 rounded"><code th:text="${alert.additionalData}">{"key": "value"}</code></pre>
+                    </div>
+                </div>
+
+                <!-- Resolução -->
+                <div th:if="${alert.resolved}" class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Informações de Resolução
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Resolvido por:</strong>
+                                <p th:text="${alert.resolvedBy ?: 'N/A'}">Usuário</p>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Data de Resolução:</strong>
+                                <p th:text="${alert.resolvedAt != null ? #temporals.format(alert.resolvedAt, 'dd/MM/yyyy HH:mm:ss') : 'N/A'}">
+                                    01/01/2024 15:30:00
+                                </p>
+                            </div>
+                        </div>
+                        <div th:if="${alert.resolutionComment}">
+                            <strong>Comentário de Resolução:</strong>
+                            <p th:text="${alert.resolutionComment}">Comentário sobre a resolução</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Ações Rápidas -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-tools me-2"></i>
+                            Ações Rápidas
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <!-- Reconhecer -->
+                            <form th:if="${!alert.resolved and alert.status.name() != 'ACKNOWLEDGED'}" 
+                                  th:action="@{'/alerts/' + ${alert.id} + '/acknowledge'}" 
+                                  method="post">
+                                <button type="submit" class="btn btn-info w-100">
+                                    <i class="fas fa-thumbs-up me-1"></i>
+                                    Reconhecer Alerta
+                                </button>
+                            </form>
+
+                            <!-- Resolver -->
+                            <button th:if="${!alert.resolved}" 
+                                    type="button" 
+                                    class="btn btn-success w-100"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#resolveModal">
+                                <i class="fas fa-check me-1"></i>
+                                Resolver Alerta
+                            </button>
+
+                            <!-- Editar -->
+                            <a th:href="@{'/alerts/' + ${alert.id} + '/edit'}" class="btn btn-warning w-100">
+                                <i class="fas fa-edit me-1"></i>
+                                Editar Alerta
+                            </a>
+
+                            <!-- Excluir -->
+                            <button type="button" 
+                                    class="btn btn-danger w-100"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#deleteModal">
+                                <i class="fas fa-trash me-1"></i>
+                                Excluir Alerta
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Informações Técnicas -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Informações Técnicas
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <strong>ID do Alerta:</strong>
+                            <p class="text-muted" th:text="${alert.id}">123</p>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Data de Criação:</strong>
+                            <p class="text-muted" 
+                               th:text="${#temporals.format(alert.createdAt, 'dd/MM/yyyy HH:mm:ss')}">
+                                01/01/2024 10:00:00
+                            </p>
+                        </div>
+                        <div th:if="${alert.updatedAt}" class="mb-3">
+                            <strong>Última Atualização:</strong>
+                            <p class="text-muted" 
+                               th:text="${#temporals.format(alert.updatedAt, 'dd/MM/yyyy HH:mm:ss')}">
+                                01/01/2024 12:00:00
+                            </p>
+                        </div>
+                        <div class="mb-0">
+                            <strong>Tempo Ativo:</strong>
+                            <p class="text-muted" 
+                               th:text="${alert.resolved ? 
+                                        'Resolvido em ' + #temporals.format(T(java.time.Duration).between(alert.createdAt, alert.resolvedAt).toHours(), '0') + ' horas' :
+                                        'Ativo há ' + #temporals.format(T(java.time.Duration).between(alert.createdAt, T(java.time.LocalDateTime).now()).toHours(), '0') + ' horas'}">
+                                Ativo há 2 horas
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alertas Relacionados -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-link me-2"></i>
+                            Links Úteis
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a th:href="@{'/servers/' + ${alert.server.id}}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-server me-1"></i>
+                                Detalhes do Servidor
+                            </a>
+                            <a th:href="@{'/alerts?serverId=' + ${alert.server.id}}" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-bell me-1"></i>
+                                Outros Alertas deste Servidor
+                            </a>
+                            <a th:href="@{'/alerts?severityId=' + ${alert.severity.id}}" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Alertas da Mesma Severidade
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Resolução -->
+        <div class="modal fade" id="resolveModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Resolver Alerta</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form th:action="@{'/alerts/' + ${alert.id} + '/resolve'}" method="post">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="resolvedBy" class="form-label">Resolvido por</label>
+                                <input type="text" class="form-control" id="resolvedBy" name="resolvedBy" 
+                                       placeholder="Seu nome ou usuário" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="resolutionComment" class="form-label">Comentário de Resolução</label>
+                                <textarea class="form-control" id="resolutionComment" name="resolutionComment" 
+                                          rows="3" placeholder="Descreva como o problema foi resolvido..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check me-1"></i>
+                                Resolver Alerta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmação de Exclusão -->
+        <div class="modal fade" id="deleteModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Confirmar Exclusão</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Tem certeza que deseja excluir este alerta?</p>
+                        <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <form th:action="@{'/alerts/' + ${alert.id} + '/delete'}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-1"></i>
+                                Excluir
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script layout:fragment="scripts">
+        // Auto-refresh se o alerta não estiver resolvido
+        /*<![CDATA[*/
+        var alertResolved = /*[[${alert.resolved}]]*/ false;
+        if (!alertResolved) {
+            // Refresh a cada 30 segundos para alertas ativos
+            setTimeout(function() {
+                window.location.reload();
+            }, 30000);
+        }
+        /*]]>*/
+    </script>
+</body>
+</html>

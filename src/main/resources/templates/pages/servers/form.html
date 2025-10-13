@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - ServerWatch'">Servidor - ServerWatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+</head>
+<body>
+    <!-- Header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <!-- Navbar -->
+    <div th:replace="~{fragments/navbar :: navbar}"></div>
+
+    <div class="container-fluid mt-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/dashboard}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/servers}">Servidores</a></li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${pageTitle}">Novo Servidor</li>
+            </ol>
+        </nav>
+
+        <!-- Título -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1">
+                    <i class="bi" th:classappend="${server.id != null ? 'bi-pencil' : 'bi-plus-lg'} + ' me-2'"></i>
+                    <span th:text="${pageTitle}">Novo Servidor</span>
+                </h2>
+                <p class="text-muted mb-0">
+                    <span th:if="${server.id == null}">Adicione um novo servidor para monitoramento</span>
+                    <span th:if="${server.id != null}">Edite as informações do servidor</span>
+                </p>
+            </div>
+            <div>
+                <a th:href="@{/servers}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i>Voltar
+                </a>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-server me-2"></i>Informações do Servidor
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/servers}" th:object="${server}" method="post" novalidate>
+                            <!-- ID oculto para edição -->
+                            <input type="hidden" th:field="*{id}">
+
+                            <!-- Nome do Servidor -->
+                            <div class="mb-4">
+                                <label for="name" class="form-label fw-bold">
+                                    <i class="bi bi-tag me-1"></i>Nome do Servidor <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       th:class="${#fields.hasErrors('name')} ? 'form-control is-invalid' : 'form-control'"
+                                       id="name"
+                                       th:field="*{name}"
+                                       placeholder="Ex: Servidor Web Principal"
+                                       maxlength="100"
+                                       required>
+                                <div th:if="${#fields.hasErrors('name')}" 
+                                     class="invalid-feedback"
+                                     th:errors="*{name}">
+                                    Erro no nome
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>Nome único para identificar o servidor (máximo 100 caracteres)
+                                </div>
+                            </div>
+
+                            <!-- Endereço IP -->
+                            <div class="mb-4">
+                                <label for="ipAddress" class="form-label fw-bold">
+                                    <i class="bi bi-router me-1"></i>Endereço IP <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       th:class="${#fields.hasErrors('ipAddress')} ? 'form-control is-invalid' : 'form-control'"
+                                       id="ipAddress"
+                                       th:field="*{ipAddress}"
+                                       placeholder="Ex: 192.168.1.100"
+                                       pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
+                                       required>
+                                <div th:if="${#fields.hasErrors('ipAddress')}" 
+                                     class="invalid-feedback"
+                                     th:errors="*{ipAddress}">
+                                    Erro no endereço IP
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>Endereço IPv4 válido (Ex: 192.168.1.100)
+                                </div>
+                            </div>
+
+                            <!-- Sistema Operacional -->
+                            <div class="mb-4">
+                                <label for="operationSystem" class="form-label fw-bold">
+                                    <i class="bi bi-laptop me-1"></i>Sistema Operacional <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" 
+                                        th:class="${#fields.hasErrors('operationSystem')} ? 'form-select is-invalid' : 'form-select'"
+                                        id="operationSystem"
+                                        th:field="*{operationSystem.id}"
+                                        required>
+                                    <option value="">Selecione o sistema operacional...</option>
+                                    <option th:each="os : ${operationSystems}" 
+                                            th:value="${os.id}" 
+                                            th:text="${os.name}"
+                                            th:selected="${server.operationSystem != null and server.operationSystem.id == os.id}">
+                                        Sistema Operacional
+                                    </option>
+                                </select>
+                                <div th:if="${#fields.hasErrors('operationSystem')}" 
+                                     class="invalid-feedback"
+                                     th:errors="*{operationSystem}">
+                                    Erro no sistema operacional
+                                </div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>Selecione o sistema operacional do servidor
+                                </div>
+                            </div>
+
+                            <!-- Visualização prévia -->
+                            <div class="card bg-light mb-4" id="preview" style="display: none;">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0">
+                                        <i class="bi bi-eye me-1"></i>Visualização
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Nome:</strong> <span id="previewName">-</span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>IP:</strong> <code id="previewIp">-</code>
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <strong>Sistema Operacional:</strong> <span id="previewOs" class="badge bg-info">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botões de ação -->
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <button type="button" 
+                                            class="btn btn-outline-info" 
+                                            onclick="togglePreview()"
+                                            id="previewBtn">
+                                        <i class="bi bi-eye me-1"></i>Visualizar
+                                    </button>
+                                </div>
+                                <div>
+                                    <a th:href="@{/servers}" class="btn btn-secondary me-2">
+                                        <i class="bi bi-x-lg me-1"></i>Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi" th:classappend="${server.id != null ? 'bi-check2' : 'bi-plus-lg'} + ' me-1'"></i>
+                                        <span th:text="${server.id != null ? 'Atualizar' : 'Criar'} + ' Servidor'">Criar Servidor</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Card de ajuda -->
+                <div class="card mt-4">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-question-circle me-2 text-info"></i>Dicas de Preenchimento
+                        </h6>
+                        <ul class="mb-0 small text-muted">
+                            <li><strong>Nome:</strong> Use um nome descritivo e único para identificar facilmente o servidor</li>
+                            <li><strong>Endereço IP:</strong> Certifique-se de que o IP está correto e acessível na rede</li>
+                            <li><strong>Sistema Operacional:</strong> Selecione o SO correto para otimizar o monitoramento</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script th:src="@{/js/main.js}"></script>
+    <script>
+        // Validação de IP em tempo real
+        document.getElementById('ipAddress').addEventListener('input', function() {
+            const ip = this.value;
+            const isValid = isValidIpAddress(ip);
+            
+            if (ip && !isValid) {
+                this.setCustomValidity('Endereço IP inválido');
+                this.classList.add('is-invalid');
+            } else {
+                this.setCustomValidity('');
+                this.classList.remove('is-invalid');
+            }
+            
+            updatePreview();
+        });
+
+        // Atualizar preview em tempo real
+        document.getElementById('name').addEventListener('input', updatePreview);
+        document.getElementById('operationSystem').addEventListener('change', updatePreview);
+
+        function isValidIpAddress(ip) {
+            const pattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            return pattern.test(ip);
+        }
+
+        function updatePreview() {
+            const name = document.getElementById('name').value || '-';
+            const ip = document.getElementById('ipAddress').value || '-';
+            const osSelect = document.getElementById('operationSystem');
+            const osText = osSelect.options[osSelect.selectedIndex]?.text || '-';
+            
+            document.getElementById('previewName').textContent = name;
+            document.getElementById('previewIp').textContent = ip;
+            document.getElementById('previewOs').textContent = osText;
+        }
+
+        function togglePreview() {
+            const preview = document.getElementById('preview');
+            const btn = document.getElementById('previewBtn');
+            
+            if (preview.style.display === 'none' || !preview.style.display) {
+                preview.style.display = 'block';
+                btn.innerHTML = '<i class="bi bi-eye-slash me-1"></i>Ocultar';
+                updatePreview();
+            } else {
+                preview.style.display = 'none';
+                btn.innerHTML = '<i class="bi bi-eye me-1"></i>Visualizar';
+            }
+        }
+
+        // Validação do formulário
+        (function() {
+            'use strict';
+            window.addEventListener('load', function() {
+                const form = document.querySelector('form');
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            }, false);
+        })();
+    </script>
+</body>
+</html>
