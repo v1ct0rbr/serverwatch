@@ -1,14 +1,15 @@
 package com.victorqueiroga.serverwatch.repository;
 
-import com.victorqueiroga.serverwatch.model.User;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import com.victorqueiroga.serverwatch.model.User;
 
 /**
  * Repositório para gerenciar usuários locais da aplicação
@@ -72,8 +73,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /**
      * Conta usuários que fizeram primeiro login hoje
      */
-    @Query("SELECT COUNT(u) FROM User u WHERE DATE(u.firstLogin) = CURRENT_DATE")
-    long countNewUsersToday();
+    @Query("SELECT COUNT(u) FROM User u WHERE u.firstLogin >= :startOfDay AND u.firstLogin < :endOfDay")
+    long countNewUsersToday(@Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
 
     /**
      * Conta usuários que fizeram login nas últimas 24 horas

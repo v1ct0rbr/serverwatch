@@ -1,0 +1,35 @@
+# Configuração de teste sem banco de dados
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration
+
+# Configurações mínimas para teste
+keycloak:
+  auth-server-url: https://keycloak.test.com
+  realm: test-realm
+  resource: test-client
+  admin:
+    client-id: test-admin
+    client-secret: test-secret
+
+serverwatch:
+  application:
+    name: ServerWatch Test
+    version: 1.0.0-TEST
+    development-mode: true
+  monitoring:
+    server-check-interval-seconds: 60
+    server-ping-timeout-seconds: 5
+  ui:
+    theme: bootstrap
+    items-per-page: 10
+
+logging:
+  level:
+    '[com.victorqueiroga.serverwatch.config]': DEBUG
+    '[org.springframework.boot.context.properties]': DEBUG

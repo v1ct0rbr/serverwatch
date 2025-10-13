@@ -1,18 +1,20 @@
 package com.victorqueiroga.serverwatch.service;
 
-import com.victorqueiroga.serverwatch.model.User;
-import com.victorqueiroga.serverwatch.repository.UserRepository;
-import com.victorqueiroga.serverwatch.security.KeycloakUser;
-import com.victorqueiroga.serverwatch.security.KeycloakUserService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.victorqueiroga.serverwatch.model.User;
+import com.victorqueiroga.serverwatch.repository.UserRepository;
+import com.victorqueiroga.serverwatch.security.KeycloakUser;
+import com.victorqueiroga.serverwatch.security.KeycloakUserService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Serviço que gerencia usuários locais integrados com Keycloak
@@ -218,9 +220,12 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public UserStats getUserStats() {
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        
         return UserStats.builder()
             .totalActiveUsers(userRepository.countByActiveTrue())
-            .newUsersToday(userRepository.countNewUsersToday())
+            .newUsersToday(userRepository.countNewUsersToday(startOfDay, endOfDay))
             .activeUsersLast24h(userRepository.countActiveUsersSince(LocalDateTime.now().minusDays(1)))
             .build();
     }

@@ -1,11 +1,12 @@
 package com.victorqueiroga.serverwatch.security;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Serviço para interação com o Keycloak Admin API
@@ -14,16 +15,16 @@ import java.util.Map;
 @Service
 public class KeycloakAdminService {
 
-    @Value("${keycloak.auth-server-url}")
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
     private String keycloakServerUrl;
 
     @Value("${keycloak.realm}")
     private String realm;
 
-    @Value("${keycloak.admin.client-id}")
+    @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
     private String adminClientId;
 
-    @Value("${keycloak.admin.client-secret}")
+    @Value("${spring.security.oauth2.client.registration.keycloak.client-secret}")
     private String adminClientSecret;
 
     private final WebClient webClient;

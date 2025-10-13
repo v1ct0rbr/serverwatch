@@ -1,0 +1,108 @@
+# ======================================
+# Configurações Customizadas do Keycloak
+# ======================================
+# Este arquivo contém propriedades específicas do Keycloak
+# que não fazem parte das configurações padrão do Spring Security OAuth2
+
+keycloak:
+  # URL base do servidor Keycloak (sem /realms)
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}
+  
+  # Nome do realm no Keycloak
+  realm: ${KEYCLOAK_REALM:DERPB}
+  
+  # Client ID da aplicação
+  resource: ${KEYCLOAK_CLIENT_ID:serverwatch-client}
+  
+  # Configurações do client administrativo
+  admin:
+    # Client ID para operações administrativas
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:serverwatch-admin}
+    # Client Secret para operações administrativas
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:change-me-in-production}
+  
+  # Configurações avançadas
+  configuration:
+    # Habilita o uso de resource roles ao invés de realm roles
+    use-resource-role-mappings: ${KEYCLOAK_USE_RESOURCE_ROLES:false}
+    
+    # Bearer-only mode (para APIs REST)
+    bearer-only: ${KEYCLOAK_BEARER_ONLY:false}
+    
+    # Configurações SSL
+    ssl-required: ${KEYCLOAK_SSL_REQUIRED:external}
+    
+    # Verificação de token
+    verify-token-audience: ${KEYCLOAK_VERIFY_TOKEN_AUDIENCE:true}
+    
+    # Timeout para conexões
+    connection-timeout-millis: ${KEYCLOAK_CONNECTION_TIMEOUT:5000}
+    socket-timeout-millis: ${KEYCLOAK_SOCKET_TIMEOUT:5000}
+    
+    # Pool de conexões
+    connection-pool-size: ${KEYCLOAK_CONNECTION_POOL_SIZE:10}
+    
+    # Configurações de CORS específicas do Keycloak
+    cors:
+      allowed-origins: ${KEYCLOAK_CORS_ORIGINS:*}
+      allowed-headers: ${KEYCLOAK_CORS_HEADERS:*}
+      allowed-methods: ${KEYCLOAK_CORS_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+      
+  # URLs calculadas baseadas nas configurações acima
+  urls:
+    # URL de autorização
+    auth: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/auth
+    # URL do token
+    token: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/token
+    # URL das informações do usuário
+    userinfo: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/userinfo
+    # URL do JWK Set
+    jwks: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/certs
+    # URL de logout
+    logout: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/logout
+    # URL do issuer
+    issuer: ${keycloak.auth-server-url}/realms/${keycloak.realm}
+    # URL da API Admin
+    admin: ${keycloak.auth-server-url}/admin/realms/${keycloak.realm}
+
+# Configurações de integração específicas da aplicação
+serverwatch:
+  keycloak:
+    # Mapeamento de roles do Keycloak para roles da aplicação
+    role-mappings:
+      # Roles do realm que mapeiam para roles da aplicação
+      realm-roles:
+        admin: 
+          - SYSTEM_ADMIN
+          - SERVER_MANAGER
+          - ALERT_MANAGER
+          - REPORT_VIEWER
+          - MONITORING_VIEWER
+        user:
+          - MONITORING_VIEWER
+          - REPORT_VIEWER
+      
+      # Roles de cliente específico que mapeiam para roles da aplicação  
+      client-roles:
+        serverwatch-client:
+          server-manager: SERVER_MANAGER
+          alert-manager: ALERT_MANAGER
+          report-viewer: REPORT_VIEWER
+    
+    # Sincronização automática de usuários
+    user-sync:
+      # Habilita sincronização automática no login
+      enabled: ${KEYCLOAK_USER_SYNC:true}
+      # Atualiza dados do usuário a cada login
+      update-on-login: ${KEYCLOAK_UPDATE_ON_LOGIN:true}
+      # Cria usuário local se não existir
+      create-if-missing: ${KEYCLOAK_CREATE_USER:true}
+      
+    # Cache de tokens e informações
+    cache:
+      # Tempo de cache para informações do usuário (em segundos)
+      user-info-ttl: ${KEYCLOAK_USER_CACHE_TTL:300}
+      # Tempo de cache para roles (em segundos)  
+      roles-ttl: ${KEYCLOAK_ROLES_CACHE_TTL:600}
+      # Habilita cache de tokens
+      token-cache-enabled: ${KEYCLOAK_TOKEN_CACHE:true}
