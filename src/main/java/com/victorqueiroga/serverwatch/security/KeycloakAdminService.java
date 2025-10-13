@@ -15,16 +15,16 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 public class KeycloakAdminService {
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
+    @Value("${keycloak.auth-server-url}")
     private String keycloakServerUrl;
 
     @Value("${keycloak.realm}")
     private String realm;
 
-    @Value("${spring.security.oauth2.client.registration.keycloak.client-id}")
+    @Value("${keycloak.admin.client-id}")
     private String adminClientId;
 
-    @Value("${spring.security.oauth2.client.registration.keycloak.client-secret}")
+    @Value("${keycloak.admin.client-secret}")
     private String adminClientSecret;
 
     private final WebClient webClient;

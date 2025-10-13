@@ -1,11 +1,5 @@
 package com.victorqueiroga.serverwatch.controller;
 
-import com.victorqueiroga.serverwatch.model.User;
-import com.victorqueiroga.serverwatch.security.KeycloakUser;
-import com.victorqueiroga.serverwatch.security.KeycloakUserService;
-import com.victorqueiroga.serverwatch.service.UserService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -14,8 +8,15 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.victorqueiroga.serverwatch.model.User;
+import com.victorqueiroga.serverwatch.security.KeycloakUser;
+import com.victorqueiroga.serverwatch.security.KeycloakUserService;
+import com.victorqueiroga.serverwatch.service.UserService;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Controller responsável por gerenciar autenticação e autorização
@@ -40,10 +41,17 @@ public class AuthController {
     @GetMapping("/login")
     public String loginPage(@RequestParam(value = "error", required = false) String error,
                            @RequestParam(value = "logout", required = false) String logout,
+                           Authentication authentication,
                            Model model) {
         
-        // Se o usuário já está autenticado, redireciona para o dashboard
-        if (keycloakUserService.isUserAuthenticated()) {
+        log.info("Acesso à página de login - Authentication: {}, Error: {}, Logout: {}", 
+                 authentication != null ? authentication.getClass().getSimpleName() : "null", error, logout);
+        
+        // Verificação mais robusta para OAuth2
+        if (authentication != null && authentication.isAuthenticated() && 
+            !authentication.getName().equals("anonymousUser") &&
+            authentication instanceof org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken) {
+            log.info("Usuário OAuth2 já autenticado: {} - redirecionando para dashboard", authentication.getName());
             return "redirect:/dashboard";
         }
         
@@ -67,10 +75,26 @@ public class AuthController {
      * Página inicial - redireciona para dashboard se autenticado ou login se não autenticado
      */
     @GetMapping("/")
-    public String homePage() {
-        if (keycloakUserService.isUserAuthenticated()) {
+    public String homePage(HttpServletRequest request, Authentication authentication) {
+        log.info("Acesso à página inicial - Authentication: {}, Principal: {}", 
+                 authentication != null ? authentication.getClass().getSimpleName() : "null",
+                 authentication != null ? authentication.getName() : "null");
+        
+        // Verificar se está autenticado com OAuth2
+        if (authentication != null && authentication.isAuthenticated() && 
+            !authentication.getName().equals("anonymousUser")) {
+            
+            // Verificar se é OAuth2AuthenticationToken (login via Keycloak)
+            if (authentication instanceof org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken) {
+                log.info("Usuário OAuth2 autenticado: {} - redirecionando para dashboard", authentication.getName());
+                return "redirect:/dashboard";
+            }
+            
+            log.info("Usuário autenticado (não OAuth2): {} - redirecionando para dashboard", authentication.getName());
             return "redirect:/dashboard";
         }
+        
+        log.info("Usuário não autenticado - redirecionando para login");
         return "redirect:/login";
     }
 
@@ -78,13 +102,34 @@ public class AuthController {
      * Dashboard principal
      */
     @GetMapping("/dashboard")
-    public String dashboard(Model model) {
+    public String dashboard(Authentication authentication, Model model) {
         try {
+            log.info("Tentativa de acesso ao dashboard - Authentication: {}, Principal: {}", 
+                     authentication != null ? authentication.getClass().getSimpleName() : "null",
+                     authentication != null ? authentication.getName() : "null");
+            
+            // Verificar autenticação primeiro
+            if (authentication == null || !authentication.isAuthenticated() || 
+                authentication.getName().equals("anonymousUser")) {
+                log.warn("Usuário não autenticado tentando acessar dashboard - redirecionando para login");
+                return "redirect:/login?error=authentication_required";
+            }
+            
+            // Verificar se é OAuth2AuthenticationToken
+            if (!(authentication instanceof org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken)) {
+                log.warn("Authentication não é OAuth2AuthenticationToken: {} - redirecionando para login", 
+                         authentication.getClass().getSimpleName());
+                return "redirect:/login?error=invalid_authentication";
+            }
+            
+            log.info("Usuário OAuth2 autenticado acessando dashboard: {}", authentication.getName());
+            
             // Obter ou criar usuário local integrado com Keycloak
             User localUser = userService.getOrCreateUser();
             KeycloakUser keycloakUser = keycloakUserService.getCurrentUser();
             
             if (keycloakUser == null) {
+                log.warn("KeycloakUser é null para usuário autenticado: {}", authentication.getName());
                 return "redirect:/login";
             }
             

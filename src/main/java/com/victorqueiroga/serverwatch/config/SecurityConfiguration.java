@@ -1,7 +1,7 @@
 package com.victorqueiroga.serverwatch.config;
 
-import com.victorqueiroga.serverwatch.security.KeycloakJwtAuthenticationConverter;
-import lombok.RequiredArgsConstructor;
+import java.util.Arrays;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +17,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
+import com.victorqueiroga.serverwatch.security.KeycloakJwtAuthenticationConverter;
+
+import lombok.RequiredArgsConstructor;
 
 /**
  * Configuração de segurança integrada com Keycloak
@@ -64,18 +66,11 @@ public class SecurityConfiguration {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            
-            // Configuração OAuth2 Resource Server para JWT
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt
-                    .decoder(jwtDecoder())
-                    .jwtAuthenticationConverter(jwtAuthenticationConverter())
-                ))
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
             
             // Configuração OAuth2 Login para Keycloak
             .oauth2Login(oauth2 -> oauth2
-                .loginPage("/oauth2/authorization/keycloak")
+                .loginPage("/login")
                 .defaultSuccessUrl("/dashboard", true)
                 .failureUrl("/login?error=true"))
             

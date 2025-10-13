@@ -1,113 +1,335 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout (~{::content})}">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso Negado - ServerWatch</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 0;
+        }
 
-<div th:fragment="content">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card border-danger">
-                <div class="card-body text-center py-5">
-                    <div class="mb-4">
-                        <i class="fas fa-ban fa-5x text-danger"></i>
+        .error-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .error-header {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+            padding: 40px 30px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .error-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+            animation: shake 2s infinite;
+        }
+
+        .error-code {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .error-title {
+            font-size: 1.8rem;
+            margin: 10px 0 0;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .error-body {
+            padding: 40px 30px;
+        }
+
+        .error-description {
+            font-size: 1.2rem;
+            color: #6c757d;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .user-info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 0 8px 8px 0;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .user-info h6 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .user-info .row {
+            margin-bottom: 10px;
+        }
+
+        .user-info strong {
+            color: #333;
+        }
+
+        .permissions-container {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .permissions-container h6 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .permission-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .permission-item.required {
+            border-color: #dc3545;
+            background-color: #fff5f5;
+        }
+
+        .permission-item.granted {
+            border-color: #28a745;
+            background-color: #f0fff4;
+        }
+
+        .support-info {
+            background: #e7f3ff;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .support-info h6 {
+            color: #0066cc;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .btn-custom {
+            border-radius: 25px;
+            padding: 12px 25px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            min-width: 140px;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+        .btn-warning-custom {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: white;
+            border: none;
+        }
+
+        .btn-warning-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
+            color: white;
+        }
+
+        .btn-outline-custom {
+            border: 2px solid #667eea;
+            color: #667eea;
+            background: white;
+        }
+
+        .btn-outline-custom:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .badge-custom {
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .error-container {
+                margin: 0 15px;
+                border-radius: 15px;
+            }
+            
+            .error-header {
+                padding: 30px 20px 25px;
+            }
+            
+            .error-code {
+                font-size: 3rem;
+            }
+            
+            .error-icon {
+                font-size: 4rem;
+            }
+            
+            .error-body {
+                padding: 30px 20px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container fade-in">
+        <!-- Header com código do erro -->
+        <div class="error-header">
+            <div class="error-icon">
+                <i class="fas fa-user-lock"></i>
+            </div>
+            <h1 class="error-code">403</h1>
+            <p class="error-title">Acesso Negado</p>
+        </div>
+
+        <!-- Corpo com detalhes -->
+        <div class="error-body">
+            <p class="error-description">
+                Você não possui as permissões necessárias para acessar este recurso. 
+                Entre em contato com o administrador do sistema se acredita que deveria ter acesso.
+            </p>
+
+            <!-- Informações do usuário (se disponível) -->
+            <div class="user-info" th:if="${error.path}">
+                <h6><i class="fas fa-info-circle"></i> Informações da Tentativa de Acesso:</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Recurso solicitado:</strong><br>
+                        <code th:text="${error.path}" style="color: #dc3545;">URL</code>
                     </div>
-                    
-                    <h1 class="display-5 text-danger mb-3">Acesso Negado</h1>
-                    
-                    <p class="lead text-muted mb-4">
-                        Você não possui permissão para acessar este recurso.
-                    </p>
-                    
-                    <div class="alert alert-warning" role="alert">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <i class="fas fa-exclamation-triangle fa-2x"></i>
-                            </div>
-                            <div class="col text-start">
-                                <h6 class="mb-1">Permissões Insuficientes</h6>
-                                <p class="mb-0">
-                                    Sua conta não possui as permissões necessárias para acessar esta página. 
-                                    Entre em contato com o administrador do sistema se você acredita que deveria ter acesso.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Informações do usuário se estiver logado -->
-                    <div th:if="${user != null}" class="card mt-4">
-                        <div class="card-body">
-                            <h6 class="card-title text-muted">Informações da Sua Conta:</h6>
-                            <div class="row">
-                                <div class="col-md-6 text-start">
-                                    <p class="mb-2">
-                                        <strong>Usuário:</strong> 
-                                        <span th:text="${user.username}">username</span>
-                                    </p>
-                                    <p class="mb-2">
-                                        <strong>Nome:</strong> 
-                                        <span th:text="${user.fullName}">Nome Completo</span>
-                                    </p>
-                                </div>
-                                <div class="col-md-6 text-start">
-                                    <p class="mb-2">
-                                        <strong>E-mail:</strong> 
-                                        <span th:text="${user.email}">email@example.com</span>
-                                    </p>
-                                    <p class="mb-2">
-                                        <strong>Roles Atuais:</strong>
-                                    </p>
-                                    <div th:if="${user.authorities != null and !user.authorities.empty}">
-                                        <span th:each="authority : ${user.authorities}" 
-                                              class="badge bg-secondary me-1 mb-1"
-                                              th:text="${authority.authority}">
-                                            ROLE_USER
-                                        </span>
-                                    </div>
-                                    <div th:if="${user.authorities == null or user.authorities.empty}">
-                                        <span class="text-muted">Nenhuma role atribuída</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Botões de Ação -->
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
-                        <a th:href="@{/dashboard}" class="btn btn-primary">
-                            <i class="fas fa-home me-2"></i>
-                            Voltar ao Dashboard
-                        </a>
-                        
-                        <a th:href="@{/profile}" class="btn btn-outline-secondary" th:if="${user != null}">
-                            <i class="fas fa-user me-2"></i>
-                            Meu Perfil
-                        </a>
-                        
-                        <button class="btn btn-outline-secondary" onclick="history.back()">
-                            <i class="fas fa-arrow-left me-2"></i>
-                            Página Anterior
-                        </button>
-                    </div>
-                    
-                    <!-- Informações de Contato -->
-                    <div class="mt-5 pt-4" style="border-top: 1px solid #dee2e6;">
-                        <h6 class="text-muted">Precisa de Ajuda?</h6>
-                        <p class="text-muted mb-2">
-                            Se você acredita que deveria ter acesso a este recurso, entre em contato:
-                        </p>
-                        <div class="row justify-content-center">
-                            <div class="col-auto">
-                                <i class="fas fa-envelope text-primary me-2"></i>
-                                <small>suporte@serverwatch.com</small>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-phone text-primary me-2"></i>
-                                <small>(83) 1234-5678</small>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <strong>Timestamp:</strong><br>
+                        <span th:text="${timestamp}">Data/Hora</span>
                     </div>
                 </div>
             </div>
+
+            <!-- Permissões necessárias -->
+            <div class="permissions-container">
+                <h6><i class="fas fa-shield-alt"></i> Permissões e Acesso:</h6>
+                
+                <div class="permission-item required">
+                    <div>
+                        <strong>Permissão Necessária:</strong> Acesso ao recurso solicitado
+                    </div>
+                    <span class="badge bg-danger">Negado</span>
+                </div>
+                
+                <div class="permission-item granted">
+                    <div>
+                        <strong>Status de Autenticação:</strong> Usuário autenticado
+                    </div>
+                    <span class="badge bg-success">OK</span>
+                </div>
+                
+                <p class="mt-3 mb-0 text-muted">
+                    <i class="fas fa-lightbulb"></i> 
+                    <strong>Dica:</strong> Solicite ao administrador para conceder as permissões necessárias à sua conta.
+                </p>
+            </div>
+
+            <!-- Informações de suporte -->
+            <div class="support-info">
+                <h6><i class="fas fa-headset"></i> Precisa solicitar acesso?</h6>
+                <p class="mb-2">Entre em contato com o administrador do sistema:</p>
+                <p class="mb-0">
+                    <i class="fas fa-envelope"></i> admin@derpb.com.br<br>
+                    <i class="fas fa-phone"></i> (83) 3000-0000<br>
+                    <i class="fas fa-ticket-alt"></i> Abra um chamado no sistema de suporte
+                </p>
+            </div>
+
+            <!-- Botões de ação -->
+            <div class="action-buttons">
+                <a href="javascript:history.back()" class="btn btn-outline-custom">
+                    <i class="fas fa-arrow-left"></i> Voltar
+                </a>
+                <a href="/" class="btn btn-primary-custom">
+                    <i class="fas fa-home"></i> Página Inicial
+                </a>
+                <a href="/login" class="btn btn-warning-custom">
+                    <i class="fas fa-sign-in-alt"></i> Fazer Login
+                </a>
+            </div>
         </div>
     </div>
-</div>
-
+</body>
 </html>
