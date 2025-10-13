@@ -11,27 +11,27 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/}" th:classappend="${#request.requestURI == '/' ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/}" th:classappend="${currentURI == '/' or currentURI == '/dashboard' ? 'active' : ''}">
                         <i class="fas fa-home me-1"></i>Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/servers}" th:classappend="${#strings.contains(#request.requestURI, '/servers') ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/servers}" th:classappend="${#strings.contains(currentURI ?: '', '/servers') ? 'active' : ''}">
                         <i class="fas fa-server me-1"></i>Servidores
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/monitoring}" th:classappend="${#strings.contains(#request.requestURI, '/monitoring') ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/monitoring}" th:classappend="${#strings.contains(currentURI ?: '', '/monitoring') ? 'active' : ''}">
                         <i class="fas fa-chart-line me-1"></i>Monitoramento
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/alerts}" th:classappend="${#strings.contains(#request.requestURI, '/alerts') ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/alerts}" th:classappend="${#strings.contains(currentURI ?: '', '/alerts') ? 'active' : ''}">
                         <i class="fas fa-exclamation-triangle me-1"></i>Alertas
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/settings}" th:classappend="${#strings.contains(#request.requestURI, '/settings') ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/settings}" th:classappend="${#strings.contains(currentURI ?: '', '/settings') ? 'active' : ''}">
                         <i class="fas fa-cog me-1"></i>Configurações
                     </a>
                 </li>

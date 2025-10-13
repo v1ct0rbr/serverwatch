@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Informações do Usuário</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .json-display { 
+            background-color: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 5px; 
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Debug - Informações do Usuário</h1>
+                
+                <div th:if="${error}" class="alert alert-danger" role="alert">
+                    <strong>Erro:</strong> <span th:text="${error}"></span>
+                </div>
+                
+                <div th:unless="${error}">
+                    <!-- Informações Básicas -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>Informações Básicas</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Nome:</strong> <span th:text="${name}"></span></p>
+                            <p><strong>Autenticado:</strong> <span th:text="${authenticated}"></span></p>
+                            <p><strong>Tipo de Autenticação:</strong> <span th:text="${authentication?.class?.simpleName}"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Authorities -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>Authorities/Roles</h5>
+                        </div>
+                        <div class="card-body">
+                            <div th:if="${authorities and !authorities.empty}">
+                                <ul class="list-group">
+                                    <li th:each="authority : ${authorities}" 
+                                        th:text="${authority.authority}" 
+                                        class="list-group-item">
+                                    </li>
+                                </ul>
+                            </div>
+                            <div th:unless="${authorities and !authorities.empty}">
+                                <div class="alert alert-warning">Nenhuma authority encontrada</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Principal -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>Principal</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="json-display" th:text="${principal}"></div>
+                        </div>
+                    </div>
+
+                    <!-- OAuth2 Principal (se disponível) -->
+                    <div th:if="${oauth2Principal}" class="card mb-3">
+                        <div class="card-header">
+                            <h5>OAuth2 Principal</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="json-display" th:text="${oauth2Principal}"></div>
+                        </div>
+                    </div>
+
+                    <!-- Claims OIDC (se disponível) -->
+                    <div th:if="${claims}" class="card mb-3">
+                        <div class="card-header">
+                            <h5>Claims do Token OIDC</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="json-display">
+                                <div th:each="claim : ${claims}">
+                                    <strong th:text="${claim.key}">:</strong> <span th:text="${claim.value}"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ID Token (se disponível) -->
+                    <div th:if="${idToken}" class="card mb-3">
+                        <div class="card-header">
+                            <h5>ID Token</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Token Value (primeiros 100 chars):</strong></p>
+                            <div class="json-display" th:text="${#strings.substring(idToken.tokenValue, 0, 100) + '...'}"></div>
+                            
+                            <p class="mt-3"><strong>Claims:</strong></p>
+                            <div class="json-display">
+                                <div th:each="claim : ${idToken.claims}">
+                                    <strong th:text="${claim.key}">:</strong> <span th:text="${claim.value}"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UserInfo (se disponível) -->
+                    <div th:if="${userInfo}" class="card mb-3">
+                        <div class="card-header">
+                            <h5>User Info</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="json-display">
+                                <div th:each="info : ${userInfo.claims}">
+                                    <strong th:text="${info.key}">:</strong> <span th:text="${info.value}"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Authentication completo -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h5>Authentication Completo</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="json-display" th:text="${authentication}"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <a href="/dashboard" class="btn btn-primary">Voltar ao Dashboard</a>
+                    <a href="/logout" class="btn btn-secondary">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -21,7 +21,7 @@ spring:
           keycloak:
             client-id: ${KEYCLOAK_CLIENT_ID:serverwatch-client}
             client-secret: ${KEYCLOAK_CLIENT_SECRET:your-client-secret}
-            scope: openid,profile,email,roles
+            scope: openid,profile,email
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             client-name: ServerWatch Keycloak

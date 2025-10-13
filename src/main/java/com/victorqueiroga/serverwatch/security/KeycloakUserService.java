@@ -6,11 +6,11 @@ import java.util.Set;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -18,39 +18,44 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class KeycloakUserService {
     
-    private final KeycloakJwtAuthenticationConverter jwtConverter;
-    
     /**
-     * Obtém o usuário atualmente autenticado
+     * Obtém o usuário atualmente autenticado via OAuth2/OIDC
      */
     public KeycloakUser getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         
-        if (authentication instanceof JwtAuthenticationToken jwtToken) {
-            return createKeycloakUserFromJwt(jwtToken.getToken());
+        if (authentication instanceof OAuth2AuthenticationToken oauth2Token) {
+            Object principal = oauth2Token.getPrincipal();
+            
+            if (principal instanceof OidcUser oidcUser) {
+                return createKeycloakUserFromOidcUser(oidcUser);
+            }
         }
         
+        log.warn("Usuário não está autenticado via OAuth2/OIDC. Tipo de autenticação: {}", 
+                 authentication != null ? authentication.getClass().getSimpleName() : "null");
         return null;
     }
     
     /**
-     * Cria um KeycloakUser a partir do token JWT
+     * Cria um KeycloakUser a partir do OidcUser
      */
-    private KeycloakUser createKeycloakUserFromJwt(Jwt jwt) {
+    private KeycloakUser createKeycloakUserFromOidcUser(OidcUser oidcUser) {
         try {
-            // Extrair informações básicas do JWT
-            String id = jwt.getClaimAsString("sub");
-            String username = jwt.getClaimAsString("preferred_username");
-            String email = jwt.getClaimAsString("email");
-            String firstName = jwt.getClaimAsString("given_name");
-            String lastName = jwt.getClaimAsString("family_name");
-            Boolean emailVerified = jwt.getClaimAsBoolean("email_verified");
+            // Extrair informações básicas do ID Token
+            OidcIdToken idToken = oidcUser.getIdToken();
             
-            // Extrair authorities usando o converter
-            Set<GrantedAuthority> authorities = new HashSet<>(jwtConverter.convert(jwt));
+            String id = idToken.getSubject();
+            String username = idToken.getClaimAsString("preferred_username");
+            String email = idToken.getEmail();
+            String firstName = idToken.getGivenName();
+            String lastName = idToken.getFamilyName();
+            Boolean emailVerified = idToken.getEmailVerified();
+            
+            // Extrair authorities do principal (já foram processadas pelo CustomOidcUserService)
+            Set<GrantedAuthority> authorities = new HashSet<>(oidcUser.getAuthorities());
             
             return KeycloakUser.builder()
                 .id(id)
@@ -64,7 +69,7 @@ public class KeycloakUserService {
                 .build();
                 
         } catch (Exception e) {
-            log.error("Erro ao criar KeycloakUser a partir do JWT", e);
+            log.error("Erro ao criar KeycloakUser a partir do OidcUser", e);
             return null;
         }
     }

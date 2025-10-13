@@ -17,7 +17,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.victorqueiroga.serverwatch.security.CustomLogoutHandler;
+import com.victorqueiroga.serverwatch.security.CustomOidcUserService;
 import com.victorqueiroga.serverwatch.security.KeycloakJwtAuthenticationConverter;
+import com.victorqueiroga.serverwatch.security.KeycloakLogoutSuccessHandler;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,6 +40,9 @@ public class SecurityConfiguration {
     private String realm;
 
     private final KeycloakJwtAuthenticationConverter keycloakJwtConverter;
+    private final CustomLogoutHandler customLogoutHandler;
+    private final KeycloakLogoutSuccessHandler logoutSuccessHandler;
+    private final CustomOidcUserService customOidcUserService;
 
     /**
      * Configuração do decoder JWT para Keycloak
@@ -72,14 +78,18 @@ public class SecurityConfiguration {
             .oauth2Login(oauth2 -> oauth2
                 .loginPage("/login")
                 .defaultSuccessUrl("/dashboard", true)
-                .failureUrl("/login?error=true"))
+                .failureUrl("/login?error=true")
+                .userInfoEndpoint(userInfo -> userInfo
+                    .oidcUserService(customOidcUserService)))
             
-            // Configuração de logout
+            // Configuração de logout com handlers customizados
             .logout(logout -> logout
                 .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout=true")
+                .addLogoutHandler(customLogoutHandler)
+                .logoutSuccessHandler(logoutSuccessHandler)
                 .invalidateHttpSession(true)
-                .clearAuthentication(true))
+                .clearAuthentication(true)
+                .deleteCookies("JSESSIONID"))
             
             // Configuração de autorização de requisições
             .authorizeHttpRequests(auth -> auth
@@ -87,6 +97,7 @@ public class SecurityConfiguration {
                 .requestMatchers(
                     "/",
                     "/login**",
+                    "/logout**",
                     "/oauth2/**",
                     "/public/**",
                     "/css/**",
@@ -94,6 +105,7 @@ public class SecurityConfiguration {
                     "/images/**",
                     "/lib/**",
                     "/error/**",
+                    "/debug/**",
                     "/favicon.ico").permitAll()
                 
                 // Recursos que requerem autenticação
