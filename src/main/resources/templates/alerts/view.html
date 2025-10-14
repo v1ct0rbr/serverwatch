@@ -351,7 +351,10 @@
         </div>
     </div>
 
-    <script layout:fragment="scripts">
+    </div>
+
+<th:block layout:fragment="scripts">
+    <script>
         // Auto-refresh se o alerta não estiver resolvido
         /*<![CDATA[*/
         var alertResolved = /*[[${alert.resolved}]]*/ false;
@@ -363,5 +366,6 @@
         }
         /*]]>*/
     </script>
-</body>
+</th:block>
+
 </html>

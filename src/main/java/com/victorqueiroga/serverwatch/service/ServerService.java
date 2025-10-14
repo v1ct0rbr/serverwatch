@@ -36,6 +36,8 @@ public class ServerService {
         return serverRepository.findAll(pageable);
     }
 
+    
+
     /**
      * Busca todos os servidores sem paginação
      */
@@ -49,7 +51,8 @@ public class ServerService {
      */
     public Optional<Server> findById(Long id) {
         log.debug("Buscando servidor por ID: {}", id);
-        return serverRepository.findById(id);
+        Server server = serverRepository.findById(id).orElse(null);
+        return Optional.ofNullable(server);
     }
 
     /**

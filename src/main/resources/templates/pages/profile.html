@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout (~{::content})}">
-
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Perfil - ServerWatch</title>
+</head>
+<body>
 <div th:fragment="content">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -170,5 +173,4 @@
         </div>
     </div>
 </div>
-
 </html>

@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout (~{::content})}">
-
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<head>
+    <title>Gerenciamento de Usuários - ServerWatch</title>
+</head>
+<body>
 <div th:fragment="content">
     <div class="row mb-4">
         <div class="col-12">
@@ -308,5 +311,4 @@
     
     /*]]>*/
 </script>
-
 </html>

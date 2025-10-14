@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html layout:decorate="~{layout/main}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
 <head>
-    <title>Alertas - ServerWatch</title>
+    <title>Lista de Alertas - ServerWatch</title>
     <style>
         .alert-badge {
             font-size: 0.75rem;
@@ -19,7 +19,8 @@
     </style>
 </head>
 <body>
-    <div layout:fragment="content">
+
+<div th:fragment="content">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
@@ -353,7 +354,10 @@
         </div>
     </div>
 
-    <script layout:fragment="scripts">
+</div>
+
+<!-- Scripts específicos da página -->
+<script>
         function confirmDelete(alertId, alertTitle) {
             document.getElementById('alertTitle').textContent = alertTitle;
             document.getElementById('deleteForm').action = '/alerts/' + alertId + '/delete';
@@ -374,5 +378,5 @@
         }
         /*]]>*/
     </script>
-</body>
+
 </html>

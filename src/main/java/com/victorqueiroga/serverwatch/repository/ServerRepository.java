@@ -63,7 +63,7 @@ public interface ServerRepository extends JpaRepository<Server, Long> {
      * Busca servidores com query customizada para filtros complexos
      */
     @Query("SELECT s FROM Server s WHERE " +
-            "(:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
+            "(:name IS NULL OR s.name LIKE CONCAT('%', :name, '%')) AND " +
             "(:ipAddress IS NULL OR s.ipAddress LIKE CONCAT('%', :ipAddress, '%')) AND " +
             "(:operationSystemId IS NULL OR s.operationSystem.id = :operationSystemId)")
     List<Server> findByFilters(@Param("name") String name,

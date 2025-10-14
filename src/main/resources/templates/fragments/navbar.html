@@ -11,27 +11,27 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/}" th:classappend="${currentURI == '/' or currentURI == '/dashboard' ? 'active' : ''}">
-                        <i class="fas fa-home me-1"></i>Dashboard
+                    <a class="nav-link" th:href="@{/}" th:classappend="${currentURI == '/' || currentURI == '/dashboard' ? 'active' : ''}">
+                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/servers}" th:classappend="${#strings.contains(currentURI ?: '', '/servers') ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/servers}" th:classappend="${currentURI != null && #strings.contains(currentURI, '/servers') ? 'active' : ''}">
                         <i class="fas fa-server me-1"></i>Servidores
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/monitoring}" th:classappend="${#strings.contains(currentURI ?: '', '/monitoring') ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/monitoring}" th:classappend="${currentURI != null && #strings.contains(currentURI, '/monitoring') ? 'active' : ''}">
                         <i class="fas fa-chart-line me-1"></i>Monitoramento
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/alerts}" th:classappend="${#strings.contains(currentURI ?: '', '/alerts') ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/alerts}" th:classappend="${currentURI != null && #strings.contains(currentURI, '/alerts') ? 'active' : ''}">
                         <i class="fas fa-exclamation-triangle me-1"></i>Alertas
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" th:href="@{/settings}" th:classappend="${#strings.contains(currentURI ?: '', '/settings') ? 'active' : ''}">
+                    <a class="nav-link" th:href="@{/settings}" th:classappend="${currentURI != null && #strings.contains(currentURI, '/settings') ? 'active' : ''}">
                         <i class="fas fa-cog me-1"></i>Configurações
                     </a>
                 </li>
@@ -41,8 +41,9 @@
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                         <i class="fas fa-user-circle me-1"></i>
-                        <span th:if="${user}" th:text="${user.fullName} ?: ${user.username}">Usuário</span>
-                        <span th:unless="${user}">Usuário</span>
+                        <span th:if="${user != null && user.fullName != null}" th:text="${user.fullName}">Usuário</span>
+                        <span th:if="${user != null && user.fullName == null && user.username != null}" th:text="${user.username}">Usuário</span>
+                        <span th:unless="${user != null}">Usuário</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li class="dropdown-header" th:if="${user}">
@@ -54,7 +55,7 @@
                             <i class="fas fa-user-edit me-2"></i>Meu Perfil
                         </a></li>
                         
-                        <li th:if="${user?.hasRole('ADMIN')}"><a class="dropdown-item" th:href="@{/admin}">
+                        <li th:if="${user != null && user.hasRole('ADMIN')}"><a class="dropdown-item" th:href="@{/admin}">
                             <i class="fas fa-cog me-2"></i>Administração
                         </a></li>
                         

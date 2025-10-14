@@ -106,10 +106,14 @@ public class SecurityConfiguration {
                     "/lib/**",
                     "/error/**",
                     "/debug/**",
-                    "/favicon.ico").permitAll()
+                    "/favicon.ico",
+                    "/api/test/**").permitAll()
                 
                 // Recursos que requerem autenticação
                 .requestMatchers("/dashboard", "/servers/**", "/monitoring/**").hasAnyRole("USER", "ADMIN")
+                
+                // APIs REST que requerem autenticação
+                .requestMatchers("/api/monitoring/**", "/api/servers/**").hasAnyRole("USER", "ADMIN")
                 
                 // Recursos administrativos
                 .requestMatchers("/admin/**", "/settings/**").hasRole("ADMIN")

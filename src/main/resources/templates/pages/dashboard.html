@@ -1,6 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout (~{::content})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content}, ~{::style}, ~{::scripts})}">
 
+<title>Dashboard - ServerWatch</title>
+
+<th:block th:fragment="style">
+    <!-- Estilos específicos do dashboard podem ser adicionados aqui -->
+</th:block>
 <div th:fragment="content">
     <div class="row">
         <div class="col-12">
@@ -202,5 +207,9 @@
         </div>
     </div>
 </div>
+
+<th:block th:fragment="scripts">
+    <!-- Scripts específicos do dashboard podem ser adicionados aqui -->
+</th:block>
 
 </html>

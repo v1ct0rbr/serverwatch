@@ -1,8 +1,8 @@
 package com.victorqueiroga.serverwatch.repository;
 
-import com.victorqueiroga.serverwatch.model.Alert;
-import com.victorqueiroga.serverwatch.model.Server;
-import com.victorqueiroga.serverwatch.model.Severity;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,8 +10,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.victorqueiroga.serverwatch.model.Alert;
+import com.victorqueiroga.serverwatch.model.Server;
+import com.victorqueiroga.serverwatch.model.Severity;
 
 /**
  * Repositório para gerenciamento de alertas do sistema
@@ -89,7 +90,7 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
            "(:resolved IS NULL OR a.resolved = :resolved) AND " +
            "(:status IS NULL OR a.status = :status) AND " +
            "(:alertType IS NULL OR a.alertType = :alertType) AND " +
-           "(:title IS NULL OR LOWER(a.title) LIKE LOWER(CONCAT('%', :title, '%'))) " +
+           "(:title IS NULL OR :title = '' OR a.title LIKE '%' || :title || '%') " +
            "ORDER BY a.createdAt DESC")
     Page<Alert> findByFilters(@Param("serverId") Long serverId,
                              @Param("severityId") Long severityId,

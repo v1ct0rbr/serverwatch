@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" 
+      th:replace="~{layout/main :: layout(~{::title}, ~{::content}, ~{::style}, ~{::scripts})}">
+
+<title>Monitoramento de Servidores - ServerWatch</title>
+
+<th:block th:fragment="style">
+    <link th:href="@{/css/monitoring-dashboard.css}" rel="stylesheet" />
+</th:block>
+
+
+<div th:fragment="content">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="fas fa-chart-line me-2 text-primary"></i>
+                Monitoramento de Servidores
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Monitoramento</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="refreshAllServers()">
+                <i class="fas fa-sync-alt me-1 refresh-btn"></i>
+                Atualizar Tudo
+            </button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                <i class="fas fa-cog me-1"></i>
+                Configurações
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card summary-card">
+                <div class="card-body text-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-white-50 small">Total de Servidores</div>
+                            <div class="h4 mb-0 text-white" id="total-servers">-</div>
+                        </div>
+                        <div class="text-white-50">
+                            <i class="fas fa-server fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-white-50 small">Online</div>
+                            <div class="h4 mb-0" id="online-servers">-</div>
+                        </div>
+                        <div class="text-white-50">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body text-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-white-50 small">Offline</div>
+                            <div class="h4 mb-0" id="offline-servers">-</div>
+                        </div>
+                        <div class="text-white-50">
+                            <i class="fas fa-times-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body text-center">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-white-50 small">Alertas</div>
+                            <div class="h4 mb-0" id="warning-servers">-</div>
+                        </div>
+                        <div class="text-white-50">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto-refresh info -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Atualização Automática:</strong> Os dados são atualizados automaticamente a cada 30 segundos.
+                </div>
+                <div class="last-updated">
+                    Última atualização: <span id="last-update-time">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Servers Grid -->
+    <div class="row" id="servers-container">
+        <!-- Os cards dos servidores serão inseridos aqui via JavaScript -->
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando servidores...</span>
+            </div>
+            <div class="mt-2 text-muted">Carregando dados dos servidores...</div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-cog me-2"></i>
+                        Configurações de Monitoramento
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Intervalo de Atualização</label>
+                        <select class="form-select" id="refresh-interval">
+                            <option value="30">30 segundos</option>
+                            <option value="60">1 minuto</option>
+                            <option value="120">2 minutos</option>
+                            <option value="300">5 minutos</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="sound-alerts" checked>
+                            <label class="form-check-label" for="sound-alerts">
+                                Alertas sonoros
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="desktop-notifications" checked>
+                            <label class="form-check-label" for="desktop-notifications">
+                                Notificações do navegador
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="scripts">
+    <script th:src="@{/js/monitoring-dashboard.js}"></script>
+</th:block>
+
+</html>

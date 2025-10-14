@@ -35,7 +35,10 @@
                         <div class="card-body">
                             <p><strong>Nome:</strong> <span th:text="${name}"></span></p>
                             <p><strong>Autenticado:</strong> <span th:text="${authenticated}"></span></p>
-                            <p><strong>Tipo de Autenticação:</strong> <span th:text="${authentication?.class?.simpleName}"></span></p>
+                            <p><strong>Tipo de Autenticação:</strong> 
+                                <span th:if="${authentication != null}" th:text="${authentication.class.simpleName}">N/A</span>
+                                <span th:unless="${authentication != null}">N/A</span>
+                            </p>
                         </div>
                     </div>
 

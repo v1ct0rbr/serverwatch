@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/main :: layout(~{::title}, ~{::content}, ~{::style}, ~{::scripts})}">
+
+<title>Lista de Servidores - ServerWatch</title>
+
+<th:block th:fragment="link">
+    <link rel="stylesheet" th:href="@{/css/monitoring-servers.css}">
+</th:block>
+
+<div th:fragment="content">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="fas fa-server me-2 text-primary"></i>
+                Lista de Servidores
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="/monitoring">Monitoramento</a></li>
+                    <li class="breadcrumb-item active">Lista</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="/servers/new" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>
+            Novo Servidor
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form class="row g-3">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Buscar</label>
+                    <input type="text" class="form-control" id="search" placeholder="Nome ou IP...">
+                </div>
+                <div class="col-md-2">
+                    <label for="status-filter" class="form-label">Status</label>
+                    <select class="form-select" id="status-filter">
+                        <option value="">Todos</option>
+                        <option value="ONLINE">Online</option>
+                        <option value="OFFLINE">Offline</option>
+                        <option value="WARNING">Alerta</option>
+                        <option value="UNKNOWN">Desconhecido</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="type-filter" class="form-label">Tipo</label>
+                    <select class="form-select" id="type-filter">
+                        <option value="">Todos</option>
+                        <option value="SERVER">Servidor</option>
+                        <option value="WORKSTATION">Estação</option>
+                        <option value="ROUTER">Roteador</option>
+                        <option value="SWITCH">Switch</option>
+                        <option value="OTHER">Outro</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="location-filter" class="form-label">Localização</label>
+                    <input type="text" class="form-control" id="location-filter" placeholder="Filtrar por local...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Limpar
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="exportToCSV()">
+                                <i class="fas fa-file-csv me-2"></i> Exportar CSV
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportToJSON()">
+                                <i class="fas fa-file-code me-2"></i> Exportar JSON
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Servidores -->
+    <div class="row" id="servers-cards-container">
+        <!-- Cards serão inseridos aqui via JavaScript -->
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando servidores...</span>
+            </div>
+            <div class="mt-2 text-muted">Carregando dados dos servidores...</div>
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+            Mostrando <span id="showing-from">0</span> a <span id="showing-to">0</span> de <span id="total-records">0</span> registros
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0" id="pagination">
+                <!-- Paginação será inserida via JavaScript -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Modal para Detalhes Rápidos -->
+<div class="modal fade" id="quickDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Detalhes do Servidor
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="quick-details-content">
+                <!-- Conteúdo será inserido via JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <a href="#" class="btn btn-primary" id="view-full-details">Ver Detalhes Completos</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="scripts">
+    <script th:src="@{/js/monitoring-servers.js}"></script>
+</th:block>
+
+</html>
