@@ -12,7 +12,7 @@ keycloak:
   realm: ${KEYCLOAK_REALM:DERPB}
   
   # Client ID da aplicação
-  resource: ${KEYCLOAK_CLIENT_ID:serverwatch-client}
+  resource: ${KEYCLOAK_CLIENT_ID:derpb-cli}
   
   # Configurações do client administrativo
   admin:

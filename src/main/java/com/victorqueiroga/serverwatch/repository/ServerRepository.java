@@ -1,18 +1,16 @@
 package com.victorqueiroga.serverwatch.repository;
 
-import com.victorqueiroga.serverwatch.model.Server;
-import com.victorqueiroga.serverwatch.model.OperationSystem;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.victorqueiroga.serverwatch.model.OperationSystem;
+import com.victorqueiroga.serverwatch.model.Server;
 
-/**
- * Repositório para gerenciamento de servidores monitorados
- */
 @Repository
 public interface ServerRepository extends JpaRepository<Server, Long> {
 
@@ -65,16 +63,22 @@ public interface ServerRepository extends JpaRepository<Server, Long> {
      * Busca servidores com query customizada para filtros complexos
      */
     @Query("SELECT s FROM Server s WHERE " +
-           "(:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
-           "(:ipAddress IS NULL OR s.ipAddress LIKE CONCAT('%', :ipAddress, '%')) AND " +
-           "(:operationSystemId IS NULL OR s.operationSystem.id = :operationSystemId)")
+            "(:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%'))) AND " +
+            "(:ipAddress IS NULL OR s.ipAddress LIKE CONCAT('%', :ipAddress, '%')) AND " +
+            "(:operationSystemId IS NULL OR s.operationSystem.id = :operationSystemId)")
     List<Server> findByFilters(@Param("name") String name,
-                              @Param("ipAddress") String ipAddress,
-                              @Param("operationSystemId") Long operationSystemId);
+            @Param("ipAddress") String ipAddress,
+            @Param("operationSystemId") Long operationSystemId);
 
     /**
      * Conta servidores por sistema operacional
      */
     @Query("SELECT COUNT(s) FROM Server s WHERE s.operationSystem.id = :operationSystemId")
     long countByOperationSystemId(@Param("operationSystemId") Long operationSystemId);
+
+    /**
+     * Busca servidor com sistema operacional
+     */
+    @Query("SELECT s FROM Server s LEFT JOIN FETCH s.operationSystem WHERE s.id = :id")
+    Optional<Server> findByIdWithOperationSystem(@Param("id") Long id);
 }

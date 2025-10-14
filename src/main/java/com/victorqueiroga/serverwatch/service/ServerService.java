@@ -1,18 +1,20 @@
 package com.victorqueiroga.serverwatch.service;
 
-import com.victorqueiroga.serverwatch.model.Server;
-import com.victorqueiroga.serverwatch.model.OperationSystem;
-import com.victorqueiroga.serverwatch.repository.ServerRepository;
-import com.victorqueiroga.serverwatch.repository.OperationSystemRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.victorqueiroga.serverwatch.model.OperationSystem;
+import com.victorqueiroga.serverwatch.model.Server;
+import com.victorqueiroga.serverwatch.repository.OperationSystemRepository;
+import com.victorqueiroga.serverwatch.repository.ServerRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service para gerenciamento de servidores monitorados
@@ -88,10 +90,10 @@ public class ServerService {
     @Transactional
     public Server save(Server server) {
         log.info("Salvando servidor: {}", server.getName());
-        
+
         // Validações básicas
         validateServer(server);
-        
+
         // Verifica se já existe um servidor com o mesmo nome (exceto ele mesmo)
         Optional<Server> existingByName = serverRepository.findByName(server.getName());
         if (existingByName.isPresent() && !existingByName.get().getId().equals(server.getId())) {
@@ -106,7 +108,7 @@ public class ServerService {
 
         Server savedServer = serverRepository.save(server);
         log.info("Servidor salvo com sucesso - ID: {}, Nome: {}", savedServer.getId(), savedServer.getName());
-        
+
         return savedServer;
     }
 
@@ -116,11 +118,11 @@ public class ServerService {
     @Transactional
     public void deleteById(Long id) {
         log.info("Deletando servidor com ID: {}", id);
-        
+
         if (!serverRepository.existsById(id)) {
             throw new IllegalArgumentException("Servidor não encontrado com ID: " + id);
         }
-        
+
         serverRepository.deleteById(id);
         log.info("Servidor deletado com sucesso - ID: {}", id);
     }
@@ -169,19 +171,19 @@ public class ServerService {
         if (server == null) {
             throw new IllegalArgumentException("Servidor não pode ser nulo");
         }
-        
+
         if (server.getName() == null || server.getName().trim().isEmpty()) {
             throw new IllegalArgumentException("Nome do servidor é obrigatório");
         }
-        
+
         if (server.getIpAddress() == null || server.getIpAddress().trim().isEmpty()) {
             throw new IllegalArgumentException("Endereço IP é obrigatório");
         }
-        
+
         if (server.getOperationSystem() == null || server.getOperationSystem().getId() == null) {
             throw new IllegalArgumentException("Sistema operacional é obrigatório");
         }
-        
+
         // Validação básica de formato IP (IPv4)
         if (!isValidIpAddress(server.getIpAddress())) {
             throw new IllegalArgumentException("Endereço IP inválido: " + server.getIpAddress());
@@ -195,12 +197,12 @@ public class ServerService {
         if (ip == null || ip.trim().isEmpty()) {
             return false;
         }
-        
+
         String[] parts = ip.split("\\.");
         if (parts.length != 4) {
             return false;
         }
-        
+
         try {
             for (String part : parts) {
                 int num = Integer.parseInt(part);
