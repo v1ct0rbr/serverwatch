@@ -1,12 +1,10 @@
 package com.victorqueiroga.serverwatch.service;
 
-import com.victorqueiroga.serverwatch.model.Alert;
-import com.victorqueiroga.serverwatch.model.Server;
-import com.victorqueiroga.serverwatch.model.Severity;
-import com.victorqueiroga.serverwatch.repository.AlertRepository;
-import com.victorqueiroga.serverwatch.repository.SeverityRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -14,9 +12,14 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import com.victorqueiroga.serverwatch.model.Alert;
+import com.victorqueiroga.serverwatch.model.Server;
+import com.victorqueiroga.serverwatch.model.Severity;
+import com.victorqueiroga.serverwatch.repository.AlertRepository;
+import com.victorqueiroga.serverwatch.repository.SeverityRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Serviço para gerenciamento de alertas
@@ -25,6 +28,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 @Transactional
+@Profile("!dev")  // Exclui este service do profile dev
 public class AlertService {
 
     private final AlertRepository alertRepository;

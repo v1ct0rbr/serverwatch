@@ -9,6 +9,7 @@ import com.victorqueiroga.serverwatch.service.SeverityService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,7 @@ import java.util.Optional;
 @RequestMapping("/alerts")
 @RequiredArgsConstructor
 @Slf4j
+@Profile("!dev")  // Exclui este controller do profile dev
 public class AlertController {
 
     private final AlertService alertService;

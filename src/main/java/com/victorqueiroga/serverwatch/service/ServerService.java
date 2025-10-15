@@ -3,6 +3,7 @@ package com.victorqueiroga.serverwatch.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Profile("!dev")  // Exclui do profile dev
 public class ServerService {
 
     private final ServerRepository serverRepository;

@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: serverwatch
+  
+  # Banco desabilitado para modo dev mock
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
+  
+  # Configuração do Thymeleaf
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
+  
+  # Security desabilitada para testes
+  security:
+    user:
+      name: admin
+      password: admin
+      roles: ADMIN,USER
+
+# Configurações da aplicação
+app:
+  name: ServerWatch
+  version: 1.0.0
+  organization: DERPB
+  development-mode: true
+
+# Configurações de monitoramento
+monitoring:
+  check-interval: 60s
+  ping-timeout: 5s
+  max-retries: 3
+  thread-pool-size: 10
+
+# Configurações do servidor
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# Configurações de logging
+logging:
+  level:
+    com.victorqueiroga.serverwatch: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
