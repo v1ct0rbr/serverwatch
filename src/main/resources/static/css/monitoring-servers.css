@@ -25,6 +25,10 @@
     border-left-color: #6c757d;
 }
 
+.server-card.pending {
+    border-left-color: #17a2b8;
+}
+
 .server-card:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transform: translateY(-2px);
@@ -42,6 +46,7 @@
 .status-offline { background-color: #dc3545; }
 .status-warning { background-color: #ffc107; }
 .status-unknown { background-color: #6c757d; }
+.status-pending { background-color: #17a2b8; }
 
 .metric-badge {
     font-size: 0.75rem;
@@ -65,5 +70,17 @@
 
 .last-check-text {
     font-size: 0.75rem;
+}
+
+/* Estado de carregamento de métricas */
+.metrics-loading {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
     color: #6c757d;
 }

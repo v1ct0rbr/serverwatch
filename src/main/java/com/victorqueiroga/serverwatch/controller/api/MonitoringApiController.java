@@ -35,11 +35,11 @@ public class MonitoringApiController {
      */
     @GetMapping("/servers")
     public ResponseEntity<List<ServerStatusDto>> getAllServerStatus() {
-        log.debug("API: Solicitando status de todos os servidores");
+        log.info("API: Solicitando status de todos os servidores");
         
         List<ServerStatusDto> serverStatuses = monitoringService.getAllServerStatus();
         
-        log.debug("API: Retornando status de {} servidores", serverStatuses.size());
+        log.info("API: Retornando status de {} servidores", serverStatuses.size());
         return ResponseEntity.ok(serverStatuses);
     }
 
@@ -81,6 +81,26 @@ public class MonitoringApiController {
             
         } catch (Exception e) {
             log.error("API: Erro ao atualizar status do servidor {}: {}", serverId, e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * POST /api/monitoring/servers/collect-metrics
+     * Coleta métricas de todos os servidores sob demanda (para otimizar carregamento da página)
+     */
+    @PostMapping("/servers/collect-metrics")
+    public ResponseEntity<List<ServerStatusDto>> collectAllServerMetrics() {
+        log.info("API: Iniciando coleta sob demanda de métricas para todos os servidores");
+        
+        try {
+            List<ServerStatusDto> serverStatuses = monitoringService.collectAllServerMetrics();
+            
+            log.info("API: Métricas coletadas com sucesso para {} servidores", serverStatuses.size());
+            return ResponseEntity.ok(serverStatuses);
+            
+        } catch (Exception e) {
+            log.error("API: Erro ao coletar métricas dos servidores: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
         }
     }

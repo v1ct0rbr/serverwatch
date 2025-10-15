@@ -1,5 +1,6 @@
 package com.victorqueiroga.serverwatch.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,30 +44,28 @@ public class ServerMonitoringService {
 
     
     /**
-     * Obtém o status atual de todos os servidores monitorados
+     * Obtém a lista básica de todos os servidores cadastrados (apenas do cache ou básico)
+     * RÁPIDO: Não coleta métricas, apenas retorna dados disponíveis
      */
     public List<ServerStatusDto> getAllServerStatus() {
-        log.debug("Obtendo status de todos os servidores do cache");
+        log.debug("Obtendo lista básica de todos os servidores (sem coleta ativa)");
         
-        // Se o cache estiver vazio, popula com dados dos servidores cadastrados
-        if (serverStatusCache.isEmpty()) {
-            log.info("Cache vazio, populando com servidores cadastrados");
-            List<Server> servers = serverService.findAll();
-            
-            for (Server server : servers) {
-                try {
-                    ServerStatusDto status = collectServerMetrics(server);
-                    serverStatusCache.put(server.getId(), status);
-                } catch (Exception e) {
-                    log.error("Erro ao coletar métricas do servidor {}: {}", server.getName(), e.getMessage());
-                    ServerStatusDto errorStatus = ServerStatusDto.fromServer(server);
-                    errorStatus.markAsOffline("Erro na coleta: " + e.getMessage());
-                    serverStatusCache.put(server.getId(), errorStatus);
-                }
-            }
-        }
-        
-        return serverStatusCache.values().stream()
+        List<Server> servers = serverService.findAll();
+        return servers.stream()
+                .map(server -> {
+                    // Retorna dados do cache se disponível, senão cria status básico
+                    ServerStatusDto cachedStatus = serverStatusCache.get(server.getId());
+                    if (cachedStatus != null) {
+                        return cachedStatus;
+                    }
+                    
+                    // Cria status básico sem métricas (instantâneo)
+                    ServerStatusDto basicStatus = ServerStatusDto.fromServer(server);
+                    basicStatus.setStatus("PENDING");
+                            basicStatus.setErrorMessage("Aguardando coleta de métricas");
+                    basicStatus.setOnline(false);
+                    return basicStatus;
+                })
                 .sorted((s1, s2) -> s1.getServerName().compareToIgnoreCase(s2.getServerName()))
                 .collect(Collectors.toList());
     }
@@ -96,7 +95,52 @@ public class ServerMonitoringService {
     }
     
     /**
+     * Coleta métricas sob demanda para todos os servidores (usado pela API)
+     */
+    public List<ServerStatusDto> collectAllServerMetrics() {
+        log.info("Coletando métricas sob demanda para todos os servidores");
+        
+        List<Server> servers = serverService.findAll();
+        List<ServerStatusDto> results = new ArrayList<>();
+        
+        // Executa em paralelo para melhor performance
+        List<CompletableFuture<ServerStatusDto>> futures = servers.stream()
+                .map(server -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        ServerStatusDto status = collectServerMetrics(server);
+                        serverStatusCache.put(server.getId(), status);
+                        return status;
+                    } catch (Exception e) {
+                        log.error("Erro ao coletar métricas do servidor {}: {}", server.getName(), e.getMessage());
+                        ServerStatusDto errorStatus = ServerStatusDto.fromServer(server);
+                        errorStatus.markAsOffline("Erro na coleta: " + e.getMessage());
+                        serverStatusCache.put(server.getId(), errorStatus);
+                        return errorStatus;
+                    }
+                }, snmpExecutor))
+                .collect(Collectors.toList());
+        
+        // Aguarda todas as coletas terminarem
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .join();
+        
+        // Coleta os resultados
+        for (CompletableFuture<ServerStatusDto> future : futures) {
+            try {
+                results.add(future.get());
+            } catch (Exception e) {
+                log.error("Erro ao obter resultado da coleta", e);
+            }
+        }
+        
+        return results.stream()
+                .sorted((s1, s2) -> s1.getServerName().compareToIgnoreCase(s2.getServerName()))
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * Atualização programada dos status dos servidores (a cada 2 minutos)
+     * Mantém funcionando para gerar alertas automáticos
      */
     @Scheduled(fixedRate = 120000) // 2 minutos
     public void scheduledMonitoring() {
@@ -325,28 +369,11 @@ public class ServerMonitoringService {
     }
     
     /**
-     * Inicialização do cache com servidores existentes
+     * Inicialização do cache com servidores existentes (desabilitado para coleta sob demanda)
      */
-    @PostConstruct
+    // @PostConstruct - Removido para melhorar performance de inicialização
     public void initializeCache() {
-        log.info("Inicializando cache de status dos servidores na inicialização da aplicação");
-        
-        List<Server> servers = serverService.findAll();
-        for (Server server : servers) {
-            try {
-                // Coleta as métricas reais na inicialização
-                ServerStatusDto status = collectServerMetrics(server);
-                serverStatusCache.put(server.getId(), status);
-                log.debug("Servidor {} inicializado com status: {}", server.getName(), status.getStatus());
-            } catch (Exception e) {
-                log.error("Erro ao inicializar servidor {}: {}", server.getName(), e.getMessage());
-                // Em caso de erro, adiciona com status offline
-                ServerStatusDto errorStatus = ServerStatusDto.fromServer(server);
-                errorStatus.markAsOffline("Erro na inicialização: " + e.getMessage());
-                serverStatusCache.put(server.getId(), errorStatus);
-            }
-        }
-        
-        log.info("Cache inicializado com {} servidores", servers.size());
+        log.info("Inicialização automática de métricas desabilitada - coleta sob demanda ativada");
+        // Métricas agora são coletadas apenas quando solicitadas via API
     }
 }

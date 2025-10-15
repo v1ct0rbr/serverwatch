@@ -208,7 +208,8 @@ function getStatusText(status) {
         'ONLINE': 'Online',
         'OFFLINE': 'Offline',
         'WARNING': 'Alerta',
-        'UNKNOWN': 'Desconhecido'
+        'UNKNOWN': 'Desconhecido',
+        'PENDING': 'Carregando...'
     };
     return texts[status] || 'Desconhecido';
 }
@@ -218,7 +219,8 @@ function getStatusBadgeColor(status) {
         'ONLINE': 'success',
         'OFFLINE': 'danger',
         'WARNING': 'warning',
-        'UNKNOWN': 'secondary'
+        'UNKNOWN': 'secondary',
+        'PENDING': 'info'
     };
     return colors[status] || 'secondary';
 }

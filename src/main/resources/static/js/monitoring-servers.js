@@ -9,7 +9,17 @@ let serversData = [];
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado - iniciando sistema de monitoramento');
+    
+    // Carrega lista básica de servidores primeiro (sem métricas)
     loadServersList();
+    
+    // Inicia coleta de métricas em background após 500ms
+    console.log('Agendando coleta de métricas para 500ms');
+    setTimeout(() => {
+        console.log('Iniciando coleta de métricas...');
+        collectServerMetrics();
+    }, 500);
     
     // Event listeners para filtros
     document.getElementById('search').addEventListener('input', debounce(loadServersList, 300));
@@ -18,16 +28,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('location-filter').addEventListener('input', debounce(loadServersList, 300));
 });
 
-// Carrega lista de servidores
+// Carrega lista de servidores (dados básicos - rápido)
 async function loadServersList(page = 1) {
     try {
+        console.log('Carregando lista de servidores, página:', page);
         currentPage = page;
         
         // Coleta filtros
-        const search = document.getElementById('search').value;
-        const status = document.getElementById('status-filter').value;
-        const type = document.getElementById('type-filter').value;
-        const location = document.getElementById('location-filter').value;
+        const search = document.getElementById('search')?.value || '';
+        const status = document.getElementById('status-filter')?.value || '';
+        const type = document.getElementById('type-filter')?.value || '';
+        const location = document.getElementById('location-filter')?.value || '';
         
         // Monta query string
         const params = new URLSearchParams();
@@ -38,11 +49,25 @@ async function loadServersList(page = 1) {
         params.append('page', page - 1); // Backend usa base 0
         params.append('size', 20);
         
+        console.log('Fazendo chamada para:', `/api/monitoring/servers?${params}`);
+        const response = await fetch(`/api/monitoring/servers?${params}`, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         
-        const response = await fetch(`/api/monitoring/servers?${params}`);
+        console.log('Resposta da lista de servidores:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
+        console.log('Dados recebidos da lista:', data);
         
         serversData = data.content || data;
+        console.log('Servidores processados:', serversData.length, serversData);
         displayServersCards(serversData);
         
         // Atualiza informações de paginação se disponível
@@ -53,6 +78,41 @@ async function loadServersList(page = 1) {
     } catch (error) {
         console.error('Erro ao carregar lista de servidores:', error);
         showErrorInCards('Erro ao carregar dados dos servidores');
+    }
+}
+
+// Coleta métricas de todos os servidores via API (em background)
+async function collectServerMetrics() {
+    try {
+        console.log('Iniciando coleta de métricas em background...');
+        showMetricsLoadingState();
+        
+        console.log('Fazendo chamada para API:', '/api/monitoring/servers/collect-metrics');
+        const response = await fetch('/api/monitoring/servers/collect-metrics', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+        
+        console.log('Resposta da API:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const serversWithMetrics = await response.json();
+        console.log(`Métricas coletadas para ${serversWithMetrics.length} servidores:`, serversWithMetrics);
+        
+        // Atualiza os cards com as métricas
+        updateCardsWithMetrics(serversWithMetrics);
+        console.log('Cards atualizados com métricas');
+        
+    } catch (error) {
+        console.error('Erro ao coletar métricas dos servidores:', error);
+        showMetricsError(error.message);
     }
 }
 
@@ -82,6 +142,9 @@ function createServerCard(server) {
     const statusClass = server.status.toLowerCase();
     const statusIcon = getStatusIcon(server.status);
     const statusText = getStatusText(server.status);
+    
+    // Para servidores com status PENDING, mostra estado de carregamento
+    const isPending = server.status === 'PENDING';
     
     return `
         <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
@@ -157,7 +220,9 @@ function createServerCard(server) {
                     </div>
                     ` : ''}
                     
-                    ${server.online ? createServerMetrics(server) : createOfflineInfo(server)}
+                    <div class="metrics-container">
+                        ${isPending ? createMetricsLoadingState() : (server.online ? createServerMetrics(server) : createOfflineInfo(server))}
+                    </div>
                 </div>
                 
                 <!-- Footer do Card -->
@@ -470,9 +535,104 @@ function getStatusIcon(status) {
         'ONLINE': 'fas fa-check-circle',
         'OFFLINE': 'fas fa-times-circle',
         'WARNING': 'fas fa-exclamation-triangle',
-        'UNKNOWN': 'fas fa-question-circle'
+        'UNKNOWN': 'fas fa-question-circle',
+        'PENDING': 'fas fa-hourglass-half'
     };
     return icons[status] || icons['UNKNOWN'];
+}
+
+// === FUNÇÕES PARA CARREGAMENTO DE MÉTRICAS ===
+
+// Cria estado de carregamento para métricas
+function createMetricsLoadingState() {
+    return `
+        <div class="text-center py-3 metrics-loading">
+            <div class="spinner-border spinner-border-sm text-primary mb-2" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <div class="text-muted small">Coletando métricas...</div>
+        </div>
+    `;
+}
+
+// Mostra estado de carregamento para todas as métricas
+function showMetricsLoadingState() {
+    const cards = document.querySelectorAll('.server-card[data-server-id]');
+    cards.forEach(card => {
+        const metricsContainer = card.querySelector('.metrics-container');
+        if (metricsContainer && !metricsContainer.querySelector('.metrics-loading')) {
+            // Só mostra loading se não tiver métricas ainda
+            const hasMetrics = metricsContainer.querySelector('.badge.metric-badge');
+            if (!hasMetrics) {
+                metricsContainer.innerHTML = createMetricsLoadingState();
+            }
+        }
+    });
+}
+
+// Atualiza cards com métricas coletadas
+function updateCardsWithMetrics(serversWithMetrics) {
+    serversWithMetrics.forEach(server => {
+        const card = document.querySelector(`.server-card[data-server-id="${server.serverId}"]`);
+        if (card) {
+            // Atualiza status se necessário
+            updateCardStatus(card, server);
+            
+            // Atualiza métricas
+            const metricsContainer = card.querySelector('.metrics-container');
+            if (metricsContainer) {
+                metricsContainer.innerHTML = server.online ? 
+                    createServerMetrics(server) : 
+                    createOfflineInfo(server);
+            }
+            
+            // Atualiza timestamp
+            const lastCheckText = card.querySelector('.last-check-text');
+            if (lastCheckText && server.lastCheck) {
+                lastCheckText.innerHTML = `
+                    <i class="far fa-clock me-1"></i>
+                    ${formatRelativeTime(server.lastCheck)}
+                `;
+            }
+        }
+    });
+}
+
+// Atualiza status do card
+function updateCardStatus(card, server) {
+    const statusBadge = card.querySelector('.badge');
+    const statusIndicator = card.querySelector('.status-indicator');
+    
+    if (statusBadge) {
+        const statusIcon = getStatusIcon(server.status);
+        const statusText = getStatusText(server.status);
+        const statusColor = getStatusBadgeColor(server.status);
+        
+        statusBadge.className = `badge bg-${statusColor}`;
+        statusBadge.innerHTML = `<i class="${statusIcon} me-1"></i>${statusText}`;
+    }
+    
+    if (statusIndicator) {
+        statusIndicator.className = `status-indicator status-${server.status.toLowerCase()}`;
+    }
+    
+    // Atualiza classe do card
+    card.className = card.className.replace(/\b(online|offline|warning|unknown|pending)\b/g, server.status.toLowerCase());
+    card.classList.add('server-card', server.status.toLowerCase());
+}
+
+// Mostra erro na coleta de métricas
+function showMetricsError(errorMessage) {
+    const cards = document.querySelectorAll('.server-card .metrics-loading');
+    cards.forEach(loadingDiv => {
+        loadingDiv.parentElement.innerHTML = `
+            <div class="text-center py-3 text-warning">
+                <i class="fas fa-exclamation-triangle mb-2"></i>
+                <div class="small">Erro ao carregar métricas</div>
+                <div class="text-muted" style="font-size: 0.8em;">${errorMessage}</div>
+            </div>
+        `;
+    });
 }
 
 function getStatusText(status) {
@@ -480,7 +640,8 @@ function getStatusText(status) {
         'ONLINE': 'Online',
         'OFFLINE': 'Offline', 
         'WARNING': 'Alerta',
-        'UNKNOWN': 'Desconhecido'
+        'UNKNOWN': 'Desconhecido',
+        'PENDING': 'Carregando...'
     };
     return texts[status] || 'Desconhecido';
 }
@@ -490,7 +651,8 @@ function getStatusBadgeColor(status) {
         'ONLINE': 'success',
         'OFFLINE': 'danger',
         'WARNING': 'warning', 
-        'UNKNOWN': 'secondary'
+        'UNKNOWN': 'secondary',
+        'PENDING': 'info'
     };
     return colors[status] || 'secondary';
 }
