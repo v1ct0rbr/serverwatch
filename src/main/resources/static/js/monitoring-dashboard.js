@@ -27,27 +27,75 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Carrega dados de monitoramento
+// Carrega dados de monitoramento (usa cache se disponível)
 async function loadMonitoringData() {
     try {
-        console.log('Carregando dados de monitoramento...');
-        
-        // Carrega resumo
-        const summaryResponse = await fetch('/api/monitoring/summary');
+        console.log('Carregando dados de monitoramento via cache...');
+        const [summaryResponse, serversResponse] = await Promise.all([
+            fetch('/api/monitoring/summary'),
+            fetch('/api/monitoring/servers')
+        ]);
+
         const summary = await summaryResponse.json();
-        updateSummaryCards(summary);
-        
-        // Carrega lista de servidores
-        const serversResponse = await fetch('/api/monitoring/servers');
         const servers = await serversResponse.json();
+        console.log('Resumo:', summary);
+        console.log('Servidores:', servers);
+
+        updateSummaryCards(summary);
         displayServers(servers);
-        
+
         // Atualiza timestamp
         document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
-        
+
     } catch (error) {
         console.error('Erro ao carregar dados de monitoramento:', error);
         showError('Erro ao carregar dados de monitoramento');
+    }
+}
+
+// Força refresh completo via SNMP (limpa cache)
+async function forceRefreshData() {
+    try {
+        console.log('=== FORÇANDO REFRESH SNMP COMPLETO ===');
+        
+        // Mostra loading
+        const container = document.getElementById('servers-container');
+        const loadingHtml = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Coletando dados SNMP...</span>
+                </div>
+                <h5 class="text-primary mt-3">Coletando dados SNMP dos servidores...</h5>
+                <p class="text-muted">Aguarde, isso pode levar alguns segundos.</p>
+            </div>
+        `;
+        container.innerHTML = loadingHtml;
+        
+        // Força refresh via API
+        const [summaryResponse, refreshResponse] = await Promise.all([
+            fetch('/api/monitoring/summary'),
+            fetch('/api/monitoring/refresh', { method: 'POST' })
+        ]);
+
+        const summary = await summaryResponse.json();
+        const servers = await refreshResponse.json();
+        
+        console.log('=== REFRESH SNMP CONCLUÍDO ===');
+        console.log('Resumo atualizado:', summary);
+        console.log('Servidores atualizados:', servers);
+
+        updateSummaryCards(summary);
+        displayServers(servers);
+
+        // Atualiza timestamp
+        document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
+        
+        // Mostra sucesso
+        showSuccess('Dados atualizados via SNMP com sucesso!');
+
+    } catch (error) {
+        console.error('Erro no refresh forçado:', error);
+        showError('Erro ao atualizar dados via SNMP: ' + error.message);
     }
 }
 
@@ -141,42 +189,103 @@ function createServerCard(server) {
 
 // Cria seção de métricas para servidores online
 function createMetricsSection(server) {
+    // Debug: Log dos dados do servidor
+    console.log('Criando métricas para servidor:', server.serverName);
+    console.log('CPU Load:', server.cpuLoad1Min);
+    console.log('Memory Total:', server.memoryTotal, 'Used:', server.memoryUsed, 'Usage%:', server.memoryUsagePercent);
+    console.log('Disk Total:', server.diskTotal, 'Used:', server.diskUsed, 'Usage%:', server.diskUsagePercent);
+    console.log('Interface Count:', server.interfaceCount);
+    
     return `
-        <div class="row g-2">
+        <div class="metrics-section">
             ${server.uptime ? `
-            <div class="col-12 mb-2">
-                <small class="text-muted">Uptime</small><br>
+            <div class="metric-row mb-2">
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>Uptime
+                </small><br>
                 <span class="badge bg-info">${server.uptime}</span>
             </div>
             ` : ''}
             
-            ${server.cpuLoad1Min !== null ? `
-            <div class="col-6">
-                <small class="text-muted">CPU Load</small><br>
-                <span class="metric-badge badge ${getCpuBadgeColor(server.cpuLoad1Min)}">${server.cpuLoad1Min.toFixed(1)}%</span>
+            <!-- CPU Metrics -->
+            <div class="metric-row mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-microchip me-1"></i>CPU Load
+                    </small>
+                    <span class="metric-badge badge ${getCpuBadgeColor(server.cpuLoad1Min || 0)}">
+                        ${server.cpuLoad1Min !== null ? server.cpuLoad1Min.toFixed(1) : 'N/A'}%
+                    </span>
+                </div>
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar ${getCpuProgressColor(server.cpuLoad1Min || 0)}" 
+                         style="width: ${server.cpuLoad1Min ? Math.min(server.cpuLoad1Min, 100) : 0}%"></div>
+                </div>
             </div>
-            ` : ''}
             
-            ${server.memoryUsagePercent !== null ? `
-            <div class="col-6">
-                <small class="text-muted">Memória</small><br>
-                <span class="metric-badge badge ${getMemoryBadgeColor(server.memoryUsagePercent)}">${server.memoryUsagePercent.toFixed(1)}%</span>
+            <!-- Memory Metrics -->
+            <div class="metric-row mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-memory me-1"></i>Memória RAM
+                    </small>
+                    <span class="metric-badge badge ${getMemoryBadgeColor(server.memoryUsagePercent || 0)}">
+                        ${server.memoryUsagePercent ? server.memoryUsagePercent.toFixed(1) : 'N/A'}%
+                    </span>
+                </div>
+                ${server.memoryTotal && server.memoryUsed ? `
+                <div class="metric-details">
+                    <small class="text-muted">
+                        ${formatBytes(server.memoryUsed * 1024 * 1024)} / ${formatBytes(server.memoryTotal * 1024 * 1024)}
+                        ${server.memoryAvailable ? ` (${formatBytes(server.memoryAvailable * 1024 * 1024)} livre)` : ''}
+                    </small>
+                </div>
+                ` : `
+                <div class="metric-details">
+                    <small class="text-muted">Dados de memória não disponíveis</small>
+                </div>
+                `}
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar ${getMemoryProgressColor(server.memoryUsagePercent || 0)}" 
+                         style="width: ${server.memoryUsagePercent || 0}%"></div>
+                </div>
             </div>
-            ` : ''}
             
-            ${server.diskUsagePercent !== null ? `
-            <div class="col-6">
-                <small class="text-muted">Disco</small><br>
-                <span class="metric-badge badge ${getDiskBadgeColor(server.diskUsagePercent)}">${server.diskUsagePercent.toFixed(1)}%</span>
+            <!-- Disk Metrics -->
+            <div class="metric-row mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-hdd me-1"></i>Espaço em Disco
+                    </small>
+                    <span class="metric-badge badge ${getDiskBadgeColor(server.diskUsagePercent || 0)}">
+                        ${server.diskUsagePercent ? server.diskUsagePercent.toFixed(1) : 'N/A'}%
+                    </span>
+                </div>
+                ${server.diskTotal && server.diskUsed ? `
+                <div class="metric-details">
+                    <small class="text-muted">
+                        ${formatBytes(server.diskUsed * 1024 * 1024 * 1024)} / ${formatBytes(server.diskTotal * 1024 * 1024 * 1024)}
+                        ${server.diskAvailable ? ` (${formatBytes(server.diskAvailable * 1024 * 1024 * 1024)} livre)` : ''}
+                    </small>
+                </div>
+                ` : `
+                <div class="metric-details">
+                    <small class="text-muted">Dados de disco não disponíveis</small>
+                </div>
+                `}
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar ${getDiskProgressColor(server.diskUsagePercent || 0)}" 
+                         style="width: ${server.diskUsagePercent || 0}%"></div>
+                </div>
             </div>
-            ` : ''}
             
-            ${server.interfaceCount !== null ? `
-            <div class="col-6">
-                <small class="text-muted">Interfaces</small><br>
-                <span class="badge bg-secondary">${server.interfaceCount}</span>
+            <!-- Network Interfaces -->
+            <div class="metric-row">
+                <small class="text-muted">
+                    <i class="fas fa-network-wired me-1"></i>Interfaces de Rede
+                </small><br>
+                <span class="badge bg-secondary">${server.interfaceCount || 'N/A'}</span>
             </div>
-            ` : ''}
         </div>
     `;
 }
@@ -330,6 +439,38 @@ function saveSettings() {
 // Utilitários
 function formatDateTime(dateTimeStr) {
     return new Date(dateTimeStr).toLocaleString('pt-BR');
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Funções para cores dos progress bars
+function getCpuProgressColor(usage) {
+    if (usage >= 90) return 'bg-danger';
+    if (usage >= 80) return 'bg-warning';
+    if (usage >= 60) return 'bg-info';
+    return 'bg-success';
+}
+
+function getMemoryProgressColor(usage) {
+    if (usage >= 95) return 'bg-danger';
+    if (usage >= 85) return 'bg-warning';
+    if (usage >= 70) return 'bg-info';
+    return 'bg-success';
+}
+
+function getDiskProgressColor(usage) {
+    if (usage >= 95) return 'bg-danger';
+    if (usage >= 90) return 'bg-warning';
+    if (usage >= 80) return 'bg-info';
+    return 'bg-success';
 }
 
 function showError(message) {

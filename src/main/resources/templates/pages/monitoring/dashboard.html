@@ -25,9 +25,13 @@
             </nav>
         </div>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-primary" onclick="refreshAllServers()">
+            <button class="btn btn-outline-primary" onclick="loadMonitoringData()">
                 <i class="fas fa-sync-alt me-1 refresh-btn"></i>
-                Atualizar Tudo
+                Atualizar (Cache)
+            </button>
+            <button class="btn btn-primary" onclick="forceRefreshData()">
+                <i class="fas fa-bolt me-1"></i>
+                Forçar SNMP
             </button>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#settingsModal">
                 <i class="fas fa-cog me-1"></i>

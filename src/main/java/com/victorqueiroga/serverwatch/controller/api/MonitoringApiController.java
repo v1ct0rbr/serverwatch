@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 public class MonitoringApiController {
 
     private final ServerMonitoringService monitoringService;
+    private final com.victorqueiroga.serverwatch.service.ServerService serverService;
 
     /**
      * GET /api/monitoring/servers
@@ -104,6 +105,183 @@ public class MonitoringApiController {
         } catch (Exception e) {
             log.error("API: Erro ao coletar métricas dos servidores: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * POST /api/monitoring/refresh
+     * Força atualização completa via SNMP limpando cache
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<List<ServerStatusDto>> forceRefreshServers() {
+        log.info("API: FORÇANDO refresh completo de todos os servidores");
+        
+        try {
+            List<ServerStatusDto> serverStatuses = monitoringService.forceRefreshAllServers();
+            
+            log.info("API: Refresh forçado concluído - {} servidores atualizados", serverStatuses.size());
+            return ResponseEntity.ok(serverStatuses);
+            
+        } catch (Exception e) {
+            log.error("API: Erro no refresh forçado: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * DELETE /api/monitoring/cache
+     * Limpa o cache de monitoramento
+     */
+    @PostMapping("/cache/clear")
+    public ResponseEntity<String> clearCache() {
+        log.info("API: Limpando cache de monitoramento");
+        
+        try {
+            monitoringService.clearCache();
+            return ResponseEntity.ok("Cache limpo com sucesso");
+            
+        } catch (Exception e) {
+            log.error("API: Erro ao limpar cache: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * GET /api/monitoring/test/{serverIp}
+     * Testa conectividade SNMP e mostra quais OIDs funcionam
+     */
+    @GetMapping("/test/{serverIp}")
+    public ResponseEntity<String> testServerSnmp(@PathVariable String serverIp) {
+        log.info("API: Testando conectividade SNMP para: {}", serverIp);
+        
+        try {
+            String testResult = monitoringService.testServerSnmp(serverIp);
+            return ResponseEntity.ok(testResult);
+            
+        } catch (Exception e) {
+            log.error("API: Erro no teste SNMP: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body("Erro no teste SNMP: " + e.getMessage());
+        }
+    }
+
+    /**
+     * GET /api/monitoring/test-snmp/{serverId}
+     * Testa SNMP de um servidor específico para debug
+     */
+    @GetMapping("/test-snmp/{serverId}")
+    public ResponseEntity<String> testServerSnmp(@PathVariable Long serverId) {
+        log.info("API: Testando SNMP do servidor ID: {}", serverId);
+        
+        try {
+            // Busca o servidor
+            java.util.Optional<com.victorqueiroga.serverwatch.model.Server> serverOpt = serverService.findById(serverId);
+            if (serverOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            com.victorqueiroga.serverwatch.model.Server server = serverOpt.get();
+            log.info("Testando SNMP para: {} [{}]", server.getName(), server.getIpAddress());
+            
+            // Testa SNMP
+            com.victorqueiroga.serverwatch.utils.SnmpHelper snmpHelper = 
+                new com.victorqueiroga.serverwatch.utils.SnmpHelper(server.getIpAddress(), "public");
+            
+            StringBuilder result = new StringBuilder();
+            result.append("=== TESTE SNMP PARA ").append(server.getName()).append(" ===\n");
+            result.append("IP: ").append(server.getIpAddress()).append("\n");
+            result.append("Community: public\n\n");
+            
+            // Testa OIDs básicos
+            try {
+                String sysDescr = snmpHelper.getAsString("1.3.6.1.2.1.1.1.0");
+                result.append("[OK] System Description: ").append(sysDescr).append("\n");
+            } catch (Exception e) {
+                result.append("[FAIL] System Description: ").append(e.getMessage()).append("\n");
+            }
+            
+            try {
+                String hostname = snmpHelper.getAsString("1.3.6.1.2.1.1.5.0");
+                result.append("[OK] Hostname: ").append(hostname).append("\n");
+            } catch (Exception e) {
+                result.append("[FAIL] Hostname: ").append(e.getMessage()).append("\n");
+            }
+            
+            try {
+                String uptime = snmpHelper.getAsString("1.3.6.1.2.1.1.3.0");
+                result.append("[OK] Uptime: ").append(uptime).append("\n");
+            } catch (Exception e) {
+                result.append("[FAIL] Uptime: ").append(e.getMessage()).append("\n");
+            }
+            
+            // Testa CPU
+            result.append("\n=== CPU ===\n");
+            try {
+                String cpuLoad = snmpHelper.getCpuLoad1Min();
+                result.append("[OK] CPU Load: ").append(cpuLoad).append("\n");
+            } catch (Exception e) {
+                result.append("[FAIL] CPU Load: ").append(e.getMessage()).append("\n");
+            }
+            
+            // Testa Memory
+            result.append("\n=== MEMORY ===\n");
+            try {
+                String memTotal = snmpHelper.getMemoryTotal();
+                result.append("[OK] Memory Total: ").append(memTotal).append(" KB\n");
+            } catch (Exception e) {
+                result.append("[FAIL] Memory Total: ").append(e.getMessage()).append("\n");
+            }
+            
+            try {
+                String memUsed = snmpHelper.getMemoryUsed();
+                result.append("[OK] Memory Used: ").append(memUsed).append(" KB\n");
+            } catch (Exception e) {
+                result.append("[FAIL] Memory Used: ").append(e.getMessage()).append("\n");
+            }
+            
+            try {
+                String memAvail = snmpHelper.getMemoryAvailable();
+                result.append("[OK] Memory Available: ").append(memAvail).append(" KB\n");
+            } catch (Exception e) {
+                result.append("[FAIL] Memory Available: ").append(e.getMessage()).append("\n");
+            }
+            
+            // Testa Disk
+            result.append("\n=== DISK ===\n");
+            try {
+                String diskTotal = snmpHelper.getDiskTotal();
+                result.append("[OK] Disk Total: ").append(diskTotal).append(" KB\n");
+            } catch (Exception e) {
+                result.append("[FAIL] Disk Total: ").append(e.getMessage()).append("\n");
+            }
+            
+            try {
+                String diskUsed = snmpHelper.getDiskUsed();
+                result.append("[OK] Disk Used: ").append(diskUsed).append(" KB\n");
+            } catch (Exception e) {
+                result.append("[FAIL] Disk Used: ").append(e.getMessage()).append("\n");
+            }
+            
+            // Testa Network
+            result.append("\n=== NETWORK ===\n");
+            try {
+                String ifCount = snmpHelper.getInterfaceCount();
+                result.append("[OK] Interface Count: ").append(ifCount).append("\n");
+            } catch (Exception e) {
+                result.append("[FAIL] Interface Count: ").append(e.getMessage()).append("\n");
+            }
+            
+            result.append("\n=== FIM TESTE ===");
+            
+            log.info("Teste SNMP concluído para {}", server.getName());
+            return ResponseEntity.ok()
+                    .header("Content-Type", "text/plain; charset=utf-8")
+                    .body(result.toString());
+            
+        } catch (Exception e) {
+            log.error("Erro no teste SNMP: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body("Erro no teste SNMP: " + e.getMessage());
         }
     }
 

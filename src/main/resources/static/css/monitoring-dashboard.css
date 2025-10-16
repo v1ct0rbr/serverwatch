@@ -79,3 +79,79 @@
     border: 1px solid #dee2e6;
     border-radius: 8px;
 }
+
+/* Estilos para seção de métricas melhorada */
+.metrics-section {
+    padding: 0.5rem 0;
+}
+
+.metric-row {
+    padding: 0.25rem 0;
+}
+
+.metric-details {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.metric-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Progress bars customizadas */
+.progress {
+    background-color: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* Cores específicas para cada tipo de métrica */
+.bg-success { background-color: #28a745 !important; }
+.bg-info { background-color: #17a2b8 !important; }
+.bg-warning { background-color: #ffc107 !important; }
+.bg-danger { background-color: #dc3545 !important; }
+
+/* Ícones nas métricas */
+.metric-row .fas,
+.metric-row .far {
+    color: #6c757d;
+    width: 14px;
+    text-align: center;
+}
+
+/* Espaçamento melhorado */
+.server-card .card-body {
+    padding: 1rem;
+}
+
+.server-card .card-header {
+    padding: 0.75rem 1rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Responsividade para telas pequenas */
+@media (max-width: 768px) {
+    .metric-details {
+        font-size: 0.7rem;
+    }
+    
+    .metric-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+        min-width: 45px;
+    }
+    
+    .server-card .card-body {
+        padding: 0.75rem;
+    }
+}

@@ -34,24 +34,40 @@ public class SnmpHelper {
     public static final String OID_IF_NUMBER = "1.3.6.1.2.1.2.1.0";          // Number of Interfaces
     public static final String OID_IF_TABLE = "1.3.6.1.2.1.2.2.1";           // Interface Table
     
-    // CPU Load OIDs - Host Resources MIB (mais universal que Net-SNMP)
-    public static final String OID_CPU_LOAD_1MIN = "1.3.6.1.4.1.2021.10.1.3.1";  // 1 min load average
-    public static final String OID_CPU_LOAD_5MIN = "1.3.6.1.4.1.2021.10.1.3.2";  // 5 min load average
-    public static final String OID_CPU_LOAD_15MIN = "1.3.6.1.4.1.2021.10.1.3.3"; // 15 min load average
+    // CPU Load OIDs - Net-SNMP (Linux/Unix apenas)
+    public static final String OID_CPU_LOAD_1MIN = "1.3.6.1.4.1.2021.10.1.3.1";  // 1 min load average (Linux)
+    public static final String OID_CPU_LOAD_5MIN = "1.3.6.1.4.1.2021.10.1.3.2";  // 5 min load average (Linux)
+    public static final String OID_CPU_LOAD_15MIN = "1.3.6.1.4.1.2021.10.1.3.3"; // 15 min load average (Linux)
+    
+    // CPU OIDs - Host Resources MIB (Windows compatível)
     public static final String OID_HR_PROCESSOR_LOAD = "1.3.6.1.2.1.25.3.3.1.2"; // Host Resources CPU Load
+    public static final String OID_HR_PROCESSOR_FRWID = "1.3.6.1.2.1.25.3.2.1.3"; // Processor ID
     
-    // Memory OIDs - Net-SNMP específico (Linux/Unix)
-    public static final String OID_MEM_TOTAL_REAL = "1.3.6.1.4.1.2021.4.5.0";    // Total Real Memory (KB)
-    public static final String OID_MEM_AVAIL_REAL = "1.3.6.1.4.1.2021.4.6.0";    // Available Real Memory (KB)
-    public static final String OID_MEM_USED_REAL = "1.3.6.1.4.1.2021.4.14.0";    // Used Real Memory (KB)
-    public static final String OID_MEM_FREE_REAL = "1.3.6.1.4.1.2021.4.11.0";    // Free Real Memory (KB)
+    // Memory OIDs - Host Resources MIB (Windows compatível)
+    public static final String OID_HR_MEM_SIZE = "1.3.6.1.2.1.25.2.2.0";        // Memory Size
+    public static final String OID_HR_STORAGE_INDEX = "1.3.6.1.2.1.25.2.3.1.1";  // Storage Index
+    public static final String OID_HR_STORAGE_TYPE = "1.3.6.1.2.1.25.2.3.1.2";   // Storage Type
+    public static final String OID_HR_STORAGE_DESCR = "1.3.6.1.2.1.25.2.3.1.3";  // Storage Description
+    public static final String OID_HR_STORAGE_UNITS = "1.3.6.1.2.1.25.2.3.1.4";  // Storage Allocation Units
+    public static final String OID_HR_STORAGE_SIZE = "1.3.6.1.2.1.25.2.3.1.5";   // Storage Size
+    public static final String OID_HR_STORAGE_USED = "1.3.6.1.2.1.25.2.3.1.6";   // Storage Used
     
-    // Disk/Storage OIDs - Net-SNMP
-    public static final String OID_DISK_PATH = "1.3.6.1.4.1.2021.9.1.2";        // Disk Path
-    public static final String OID_DISK_TOTAL = "1.3.6.1.4.1.2021.9.1.6";       // Total Disk Size (KB)
-    public static final String OID_DISK_AVAIL = "1.3.6.1.4.1.2021.9.1.7";       // Available Disk (KB)
-    public static final String OID_DISK_USED = "1.3.6.1.4.1.2021.9.1.8";        // Used Disk (KB)
-    public static final String OID_DISK_PERCENT = "1.3.6.1.4.1.2021.9.1.9";     // Disk Usage %
+    // Memory OIDs - Net-SNMP específico (Linux/Unix apenas)
+    public static final String OID_MEM_TOTAL_REAL = "1.3.6.1.4.1.2021.4.5.0";    // Total Real Memory (KB) - Linux
+    public static final String OID_MEM_AVAIL_REAL = "1.3.6.1.4.1.2021.4.6.0";    // Available Real Memory (KB) - Linux
+    public static final String OID_MEM_USED_REAL = "1.3.6.1.4.1.2021.4.14.0";    // Used Real Memory (KB) - Linux
+    public static final String OID_MEM_FREE_REAL = "1.3.6.1.4.1.2021.4.11.0";    // Free Real Memory (KB) - Linux
+    
+    // Disk/Storage OIDs - Net-SNMP (Linux/Unix apenas)
+    public static final String OID_DISK_PATH = "1.3.6.1.4.1.2021.9.1.2";        // Disk Path - Linux
+    public static final String OID_DISK_TOTAL = "1.3.6.1.4.1.2021.9.1.6";       // Total Disk Size (KB) - Linux
+    public static final String OID_DISK_AVAIL = "1.3.6.1.4.1.2021.9.1.7";       // Available Disk (KB) - Linux
+    public static final String OID_DISK_USED = "1.3.6.1.4.1.2021.9.1.8";        // Used Disk (KB) - Linux
+    public static final String OID_DISK_PERCENT = "1.3.6.1.4.1.2021.9.1.9";     // Disk Usage % - Linux
+    
+    // Windows Performance Counter OIDs (quando disponíveis)
+    public static final String OID_WIN_CPU_UTIL = "1.3.6.1.4.1.311.1.1.3.1.1.2"; // Windows CPU Utilization
+    public static final String OID_WIN_MEM_AVAIL = "1.3.6.1.4.1.311.1.1.3.3.1.2"; // Windows Available Memory
     // System Information OIDs
     public static final String OID_HOSTNAME = "1.3.6.1.2.1.1.5.0";             // System Name (Hostname)
     public static final String OID_CONTACT = "1.3.6.1.2.1.1.4.0";              // System Contact
@@ -93,6 +109,9 @@ public class SnmpHelper {
     public SnmpHelper(String ip, String community) {
         this.address = "udp:" + ip + "/161"; // Porta SNMP padrão
         this.community = community;
+        // Configurações mais tolerantes para melhor compatibilidade
+        this.timeout = 5000; // 5 segundos
+        this.retries = 3;
     }
 
     public String getAsString(String oid) throws Exception {
@@ -110,15 +129,38 @@ public class SnmpHelper {
 
         // Enviando solicitação
         ResponseEvent<UdpAddress> responseEvent = snmp.send(pdu, target);
-        snmp.close();
+        
+        try {
+            snmp.close();
+        } catch (Exception e) {
+            // Ignora erros ao fechar - não crítico
+        }
 
         // Verificando resposta
         if (responseEvent != null && responseEvent.getResponse() != null) {
-            VariableBinding vb = responseEvent.getResponse().get(0);
-            return vb.getVariable().toString();
-        } else {
-            throw new RuntimeException("SNMP Timeout ou sem resposta para OID: " + oid);
+            PDU response = responseEvent.getResponse();
+            
+            // Verifica se há erro na resposta
+            if (response.getErrorStatus() != 0) {
+                throw new RuntimeException("Erro SNMP: " + response.getErrorStatusText() + 
+                        " (código: " + response.getErrorStatus() + ") para OID: " + oid);
+            }
+            
+            if (response.size() > 0) {
+                VariableBinding vb = response.get(0);
+                String result = vb.getVariable().toString();
+                
+                // Verifica se retornou "noSuchObject" ou "noSuchInstance"
+                if (result.contains("noSuchObject") || result.contains("noSuchInstance")) {
+                    throw new RuntimeException("OID não suportado pelo dispositivo: " + oid);
+                }
+                
+                return result;
+            }
         }
+        
+        throw new RuntimeException("SNMP Timeout ou sem resposta para OID: " + oid + 
+                " (target: " + address + ", community: " + community + ")");
     }
 
     private CommunityTarget<UdpAddress> createTarget() {
@@ -156,31 +198,237 @@ public class SnmpHelper {
     }
     
     /**
-     * Obtém o load average de 1 minuto
+     * Detecta se é um sistema Windows baseado na descrição do sistema
+     */
+    public boolean isWindowsSystem() throws Exception {
+        String sysDescr = getAsString(OID_SYS_DESCR);
+        return sysDescr != null && sysDescr.toLowerCase().contains("windows");
+    }
+    
+    /**
+     * Obtém o load average de CPU (inteligente por SO)
      */
     public String getCpuLoad1Min() throws Exception {
-        return getAsString(OID_CPU_LOAD_1MIN);
+        try {
+            if (isWindowsSystem()) {
+                // Para Windows, tenta Host Resources MIB primeiro
+                return getAsString(OID_HR_PROCESSOR_LOAD + ".1");
+            } else {
+                // Para Linux/Unix, usa Net-SNMP
+                return getAsString(OID_CPU_LOAD_1MIN);
+            }
+        } catch (Exception e) {
+            // Fallback: tenta Host Resources MIB genérico
+            try {
+                return getAsString(OID_HR_PROCESSOR_LOAD + ".1");
+            } catch (Exception e2) {
+                System.err.println("CPU Load não disponível: " + e2.getMessage());
+                return null;
+            }
+        }
     }
     
     /**
-     * Obtém a memória total em KB
+     * Obtém a memória total (inteligente por SO)
      */
     public String getMemoryTotal() throws Exception {
-        return getAsString(OID_MEM_TOTAL_REAL);
+        try {
+            if (isWindowsSystem()) {
+                // Para Windows: usa Host Resources MIB
+                // Procura por storage do tipo RAM (1.3.6.1.2.1.25.2.1.2)
+                return getWindowsMemoryFromHostResources("total");
+            } else {
+                // Para Linux/Unix: usa Net-SNMP
+                return getAsString(OID_MEM_TOTAL_REAL);
+            }
+        } catch (Exception e) {
+            System.err.println("Memória total não disponível: " + e.getMessage());
+            return null;
+        }
     }
     
     /**
-     * Obtém a memória disponível em KB
+     * Obtém a memória disponível (inteligente por SO)
      */
     public String getMemoryAvailable() throws Exception {
-        return getAsString(OID_MEM_AVAIL_REAL);
+        try {
+            if (isWindowsSystem()) {
+                return getWindowsMemoryFromHostResources("available");
+            } else {
+                return getAsString(OID_MEM_AVAIL_REAL);
+            }
+        } catch (Exception e) {
+            System.err.println("Memória disponível não disponível: " + e.getMessage());
+            return null;
+        }
     }
     
     /**
-     * Obtém a memória usada em KB
+     * Obtém a memória usada (inteligente por SO)
      */
     public String getMemoryUsed() throws Exception {
-        return getAsString(OID_MEM_USED_REAL);
+        try {
+            if (isWindowsSystem()) {
+                return getWindowsMemoryFromHostResources("used");
+            } else {
+                return getAsString(OID_MEM_USED_REAL);
+            }
+        } catch (Exception e) {
+            System.err.println("Memória usada não disponível: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Helper para obter informações de memória do Windows via Host Resources MIB
+     */
+    private String getWindowsMemoryFromHostResources(String type) throws Exception {
+        // Para Host Resources MIB, precisamos iterar pela tabela de storage
+        // e encontrar entradas do tipo RAM (OID de tipo físico de memória)
+        // Por simplicidade, vamos tentar alguns índices comuns
+        for (int i = 1; i <= 10; i++) {
+            try {
+                String storageType = getAsString(OID_HR_STORAGE_TYPE + "." + i);
+                if (storageType != null && storageType.contains("1.3.6.1.2.1.25.2.1.2")) {
+                    // Found RAM storage type
+                    String units = getAsString(OID_HR_STORAGE_UNITS + "." + i);
+                    String size = getAsString(OID_HR_STORAGE_SIZE + "." + i);
+                    String used = getAsString(OID_HR_STORAGE_USED + "." + i);
+                    
+                    if (units != null && size != null) {
+                        long unitSize = Long.parseLong(units);
+                        long totalSize = Long.parseLong(size);
+                        long totalBytes = unitSize * totalSize;
+                        long totalKB = totalBytes / 1024;
+                        
+                        switch (type) {
+                            case "total":
+                                return String.valueOf(totalKB);
+                            case "used":
+                                if (used != null) {
+                                    long usedSize = Long.parseLong(used);
+                                    long usedBytes = unitSize * usedSize;
+                                    return String.valueOf(usedBytes / 1024);
+                                }
+                                break;
+                            case "available":
+                                if (used != null) {
+                                    long usedSize = Long.parseLong(used);
+                                    long availableSize = totalSize - usedSize;
+                                    long availableBytes = unitSize * availableSize;
+                                    return String.valueOf(availableBytes / 1024);
+                                }
+                                break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Continue tentando outros índices
+            }
+        }
+        throw new Exception("Memória " + type + " não encontrada via Host Resources MIB");
+    }
+    
+    /**
+     * Obtém o espaço total em disco (inteligente por SO)
+     */
+    public String getDiskTotal() throws Exception {
+        try {
+            if (isWindowsSystem()) {
+                return getWindowsDiskFromHostResources("total");
+            } else {
+                // Para Linux, tenta Net-SNMP (índice 1 = primeiro disco)
+                return getAsString(OID_DISK_TOTAL + ".1");
+            }
+        } catch (Exception e) {
+            System.err.println("Disco total não disponível: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Obtém o espaço usado em disco (inteligente por SO)
+     */
+    public String getDiskUsed() throws Exception {
+        try {
+            if (isWindowsSystem()) {
+                return getWindowsDiskFromHostResources("used");
+            } else {
+                return getAsString(OID_DISK_USED + ".1");
+            }
+        } catch (Exception e) {
+            System.err.println("Disco usado não disponível: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Obtém o espaço disponível em disco (inteligente por SO)
+     */
+    public String getDiskAvailable() throws Exception {
+        try {
+            if (isWindowsSystem()) {
+                return getWindowsDiskFromHostResources("available");
+            } else {
+                return getAsString(OID_DISK_AVAIL + ".1");
+            }
+        } catch (Exception e) {
+            System.err.println("Disco disponível não disponível: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Helper para obter informações de disco do Windows via Host Resources MIB
+     */
+    private String getWindowsDiskFromHostResources(String type) throws Exception {
+        // Procura por storage do tipo disco fixo
+        for (int i = 1; i <= 20; i++) {
+            try {
+                String storageType = getAsString(OID_HR_STORAGE_TYPE + "." + i);
+                String description = getAsString(OID_HR_STORAGE_DESCR + "." + i);
+                
+                // Procura por discos (tipo 1.3.6.1.2.1.25.2.1.4 = disco fixo)
+                // ou pela descrição contendo "C:" ou similar
+                if ((storageType != null && storageType.contains("1.3.6.1.2.1.25.2.1.4")) ||
+                    (description != null && (description.contains("C:") || description.contains("/"))) ) {
+                    
+                    String units = getAsString(OID_HR_STORAGE_UNITS + "." + i);
+                    String size = getAsString(OID_HR_STORAGE_SIZE + "." + i);
+                    String used = getAsString(OID_HR_STORAGE_USED + "." + i);
+                    
+                    if (units != null && size != null) {
+                        long unitSize = Long.parseLong(units);
+                        long totalSize = Long.parseLong(size);
+                        long totalBytes = unitSize * totalSize;
+                        long totalKB = totalBytes / 1024;
+                        
+                        switch (type) {
+                            case "total":
+                                return String.valueOf(totalKB);
+                            case "used":
+                                if (used != null) {
+                                    long usedSize = Long.parseLong(used);
+                                    long usedBytes = unitSize * usedSize;
+                                    return String.valueOf(usedBytes / 1024);
+                                }
+                                break;
+                            case "available":
+                                if (used != null) {
+                                    long usedSize = Long.parseLong(used);
+                                    long availableSize = totalSize - usedSize;
+                                    long availableBytes = unitSize * availableSize;
+                                    return String.valueOf(availableBytes / 1024);
+                                }
+                                break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Continue tentando outros índices
+            }
+        }
+        throw new Exception("Disco " + type + " não encontrado via Host Resources MIB");
     }
     
     /**
@@ -188,5 +436,37 @@ public class SnmpHelper {
      */
     public String getInterfaceCount() throws Exception {
         return getAsString(OID_IF_NUMBER);
+    }
+    
+    /**
+     * Método para debug - testa todos os OIDs importantes
+     */
+    public void debugSnmpOids() {
+        System.out.println("=== DEBUG SNMP OIDs ===");
+        
+        String[] testOids = {
+            OID_SYS_DESCR, OID_SYS_UPTIME, OID_HOSTNAME,
+            OID_HR_PROCESSOR_LOAD + ".1", OID_CPU_LOAD_1MIN,
+            OID_MEM_TOTAL_REAL, OID_HR_STORAGE_TYPE + ".1",
+            OID_HR_STORAGE_SIZE + ".1", OID_IF_NUMBER
+        };
+        
+        String[] testNames = {
+            "System Description", "System Uptime", "Hostname",
+            "CPU Load (HR)", "CPU Load (Net-SNMP)",
+            "Memory Total (Net-SNMP)", "Storage Type", 
+            "Storage Size", "Interface Count"
+        };
+        
+        for (int i = 0; i < testOids.length; i++) {
+            try {
+                String result = getAsString(testOids[i]);
+                System.out.println("[OK] " + testNames[i] + ": " + result);
+            } catch (Exception e) {
+                System.out.println("[FAIL] " + testNames[i] + ": " + e.getMessage());
+            }
+        }
+        
+        System.out.println("=== FIM DEBUG ===");
     }
 }

@@ -146,4 +146,14 @@ public class ServerStatusDto {
         
         status = hasWarning ? "WARNING" : "ONLINE";
     }
+    
+    /**
+     * Retorna lastUpdate para compatibilidade (como Date)
+     */
+    public java.util.Date getLastUpdate() {
+        if (lastCheck != null) {
+            return java.sql.Timestamp.valueOf(lastCheck);
+        }
+        return null;
+    }
 }
