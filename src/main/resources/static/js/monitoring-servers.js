@@ -281,12 +281,7 @@ function createServerMetrics(server) {
             </div>
             ` : ''}
             
-            ${server.interfaceCount !== null ? `
-            <div class="col-6">
-                <small class="text-muted d-block">Interfaces</small>
-                <span class="badge bg-secondary metric-badge">${server.interfaceCount}</span>
-            </div>
-            ` : ''}
+
         </div>
     `;
 }

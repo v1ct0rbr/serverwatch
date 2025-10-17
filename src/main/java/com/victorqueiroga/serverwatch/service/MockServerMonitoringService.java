@@ -102,7 +102,6 @@ public class MockServerMonitoringService {
             server.setDiskTotal(500L);
             server.setDiskUsed(125L);
             server.setDiskUsagePercent(25.0);
-            server.setInterfaceCount(3);
             server.setLastCheck(LocalDateTime.now());
         }
         
@@ -129,8 +128,7 @@ public class MockServerMonitoringService {
                 server.setMemoryUsagePercent(25.0);
                 server.setDiskTotal(1000L);
                 server.setDiskUsed(350L);
-                server.setDiskUsagePercent(35.0);
-                server.setInterfaceCount(4);
+                server.setDiskUsagePercent(35.0);                
             } else if (server.getServerId() == 2L) {
                 // Server DB - Warning
                 server.setOnline(true);
@@ -144,8 +142,7 @@ public class MockServerMonitoringService {
                 server.setMemoryUsagePercent(80.0);
                 server.setDiskTotal(2000L);
                 server.setDiskUsed(1600L);
-                server.setDiskUsagePercent(80.0);
-                server.setInterfaceCount(2);
+                server.setDiskUsagePercent(80.0);                
             } else if (server.getServerId() == 3L) {
                 // Server App - Offline
                 server.setOnline(false);

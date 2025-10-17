@@ -1,7 +1,8 @@
 package com.victorqueiroga.serverwatch.dto;
 
 import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.victorqueiroga.serverwatch.model.Server;
@@ -43,15 +44,14 @@ public class ServerStatusDto {
     private Long memoryAvailable;
     private Double memoryUsagePercent;
     
-    // Disco (em GB)
+    // Disco (em GB) - DEPRECATED: usar diskList
     private Long diskTotal;
     private Long diskUsed;
     private Long diskAvailable;
     private Double diskUsagePercent;
     
-    // Interface de rede
-    private Integer interfaceCount;
-    private Map<String, Object> networkInterfaces;
+    // Lista de discos (novo)
+    private List<DiskInfoDto> diskList = new ArrayList<>();
     
     // Tempos
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -142,6 +142,16 @@ public class ServerStatusDto {
         // Verifica disco (warning se > 90%)
         if (diskUsagePercent != null && diskUsagePercent > 90.0) {
             hasWarning = true;
+        }
+        
+        // Verifica discos da lista (warning se qualquer > 90%)
+        if (diskList != null) {
+            for (DiskInfoDto disk : diskList) {
+                if (disk.getUsagePercent() != null && disk.getUsagePercent() > 90.0) {
+                    hasWarning = true;
+                    break;
+                }
+            }
         }
         
         status = hasWarning ? "WARNING" : "ONLINE";

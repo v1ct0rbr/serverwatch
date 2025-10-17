@@ -251,41 +251,8 @@ function createMetricsSection(server) {
                 </div>
             </div>
             
-            <!-- Disk Metrics -->
-            <div class="metric-row mb-2">
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted">
-                        <i class="fas fa-hdd me-1"></i>Espaço em Disco
-                    </small>
-                    <span class="metric-badge badge ${getDiskBadgeColor(server.diskUsagePercent || 0)}">
-                        ${server.diskUsagePercent ? server.diskUsagePercent.toFixed(1) : 'N/A'}%
-                    </span>
-                </div>
-                ${server.diskTotal && server.diskUsed ? `
-                <div class="metric-details">
-                    <small class="text-muted">
-                        ${formatBytes(server.diskUsed * 1024 * 1024 * 1024)} / ${formatBytes(server.diskTotal * 1024 * 1024 * 1024)}
-                        ${server.diskAvailable ? ` (${formatBytes(server.diskAvailable * 1024 * 1024 * 1024)} livre)` : ''}
-                    </small>
-                </div>
-                ` : `
-                <div class="metric-details">
-                    <small class="text-muted">Dados de disco não disponíveis</small>
-                </div>
-                `}
-                <div class="progress mt-1" style="height: 6px;">
-                    <div class="progress-bar ${getDiskProgressColor(server.diskUsagePercent || 0)}" 
-                         style="width: ${server.diskUsagePercent || 0}%"></div>
-                </div>
-            </div>
-            
-            <!-- Network Interfaces -->
-            <div class="metric-row">
-                <small class="text-muted">
-                    <i class="fas fa-network-wired me-1"></i>Interfaces de Rede
-                </small><br>
-                <span class="badge bg-secondary">${server.interfaceCount || 'N/A'}</span>
-            </div>
+            <!-- Multiple Disks -->
+            ${createDisksSection(server)}
         </div>
     `;
 }
@@ -470,6 +437,102 @@ function getDiskProgressColor(usage) {
     if (usage >= 95) return 'bg-danger';
     if (usage >= 90) return 'bg-warning';
     if (usage >= 80) return 'bg-info';
+    return 'bg-success';
+}
+
+// Cria seção de múltiplos discos
+function createDisksSection(server) {
+    // Se não tiver diskList, usa o disco principal (backward compatibility)
+    if (!server.diskList || server.diskList.length === 0) {
+        if (server.diskTotal && server.diskUsed) {
+            return `
+                <div class="metric-row mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-hdd me-1"></i>Espaço em Disco
+                        </small>
+                        <span class="metric-badge badge ${getDiskBadgeColor(server.diskUsagePercent || 0)}">
+                            ${server.diskUsagePercent ? server.diskUsagePercent.toFixed(1) : 'N/A'}%
+                        </span>
+                    </div>
+                    <div class="metric-details">
+                        <small class="text-muted">
+                            ${formatBytes(server.diskUsed * 1024 * 1024 * 1024)} / ${formatBytes(server.diskTotal * 1024 * 1024 * 1024)}
+                            ${server.diskAvailable ? ` (${formatBytes(server.diskAvailable * 1024 * 1024 * 1024)} livre)` : ''}
+                        </small>
+                    </div>
+                    <div class="progress mt-1" style="height: 6px;">
+                        <div class="progress-bar ${getDiskProgressColor(server.diskUsagePercent || 0)}" 
+                             style="width: ${server.diskUsagePercent || 0}%"></div>
+                    </div>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="metric-row mb-2">
+                    <small class="text-muted">
+                        <i class="fas fa-hdd me-1"></i>Espaço em Disco
+                    </small><br>
+                    <span class="badge bg-secondary">Não disponível</span>
+                </div>
+            `;
+        }
+    }
+    
+    // Múltiplos discos
+    let disksHtml = `
+        <div class="metric-row mb-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="fas fa-hdd me-1"></i>Discos (${server.diskList.length})
+                </small>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                        data-bs-target="#disks-${server.serverId}" aria-expanded="false">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse mt-2" id="disks-${server.serverId}">
+    `;
+    
+    server.diskList.forEach((disk, index) => {
+        disksHtml += `
+            <div class="disk-item mb-2 p-2 border rounded">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <strong class="text-primary">${disk.path}</strong>
+                    <span class="badge ${getDiskBadgeColor(disk.usagePercent || 0)}">
+                        ${disk.usagePercent ? disk.usagePercent.toFixed(1) : '0'}%
+                    </span>
+                </div>
+                <div class="metric-details">
+                    <small class="text-muted">
+                        ${disk.description || 'Sem descrição'}
+                    </small><br>
+                    <small class="text-muted">
+                        ${formatBytes(disk.usedGB * 1024 * 1024 * 1024)} / ${formatBytes(disk.totalGB * 1024 * 1024 * 1024)}
+                        (${formatBytes(disk.availableGB * 1024 * 1024 * 1024)} livre)
+                    </small>
+                </div>
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar ${getDiskProgressColor(disk.usagePercent || 0)}" 
+                         style="width: ${disk.usagePercent || 0}%"></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    disksHtml += `
+            </div>
+        </div>
+    `;
+    
+    return disksHtml;
+}
+
+// Função auxiliar para cores da barra de progresso do disco
+function getDiskProgressColor(usage) {
+    if (usage >= 90) return 'bg-danger';
+    if (usage >= 80) return 'bg-warning';
+    if (usage >= 70) return 'bg-info';
     return 'bg-success';
 }
 

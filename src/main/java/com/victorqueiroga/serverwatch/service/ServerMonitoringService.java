@@ -323,9 +323,6 @@ public class ServerMonitoringService {
             // Coleta métricas de disco
             collectDiskMetrics(snmp, status);
             
-            // Coleta informações de rede
-            collectNetworkMetrics(snmp, status);
-            
             // Calcula percentuais
             status.calculateMemoryUsage();
             status.calculateDiskUsage();
@@ -489,83 +486,76 @@ public class ServerMonitoringService {
     }
     
     /**
-     * Coleta métricas de disco (usando métodos inteligentes do SnmpHelper)
+     * Coleta métricas de disco (múltiplos discos usando métodos inteligentes)
      */
     private void collectDiskMetrics(SnmpHelper snmp, ServerStatusDto status) {
-        log.debug("=== Coletando métricas de DISCO (métodos inteligentes por SO) ===");
+        log.debug("=== Coletando múltiplos DISCOS (métodos inteligentes por SO) ===");
+        
+        try {
+            // Coleta TODOS os discos disponíveis
+            List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = snmp.getAllDisks();
+            
+            if (diskList != null && !diskList.isEmpty()) {
+                status.setDiskList(diskList);
+                log.info("✅ {} discos coletados com sucesso!", diskList.size());
+                
+                // Log de cada disco encontrado
+                for (com.victorqueiroga.serverwatch.dto.DiskInfoDto disk : diskList) {
+                    log.info("  💾 Disco {}: {} GB total, {} GB usado, {} GB disponível ({}%)", 
+                            disk.getPath(), disk.getTotalGB(), disk.getUsedGB(), 
+                            disk.getAvailableGB(), String.format("%.1f", disk.getUsagePercent()));
+                }
+                
+                // Mantém compatibilidade: define o primeiro disco como disco principal
+                if (!diskList.isEmpty()) {
+                    com.victorqueiroga.serverwatch.dto.DiskInfoDto primaryDisk = diskList.get(0);
+                    status.setDiskTotal(primaryDisk.getTotalGB());
+                    status.setDiskUsed(primaryDisk.getUsedGB());
+                    status.setDiskAvailable(primaryDisk.getAvailableGB());
+                    log.debug("Disco principal definido: {} com {} GB total", 
+                            primaryDisk.getPath(), primaryDisk.getTotalGB());
+                }
+                
+            } else {
+                log.warn("⚠️ Nenhum disco encontrado via método inteligente");
+                
+                // Fallback para método antigo (disco único)
+                collectSingleDisk(snmp, status);
+            }
+            
+        } catch (Exception e) {
+            log.error("❌ Erro ao coletar discos via método inteligente: {}", e.getMessage());
+            
+            // Fallback para método antigo
+            collectSingleDisk(snmp, status);
+        }
+    }
+    
+    /**
+     * Fallback para coleta de disco único (método antigo)
+     */
+    private void collectSingleDisk(SnmpHelper snmp, ServerStatusDto status) {
+        log.debug("Usando fallback para disco único...");
         
         try {
             // Disco Total
             String diskTotalValue = snmp.getDiskTotal();
             if (diskTotalValue != null && !diskTotalValue.trim().isEmpty()) {
                 Long totalKB = Long.parseLong(diskTotalValue.trim());
-                Long totalGB = totalKB / (1024 * 1024); // KB para GB
+                Long totalGB = totalKB / (1024 * 1024);
                 status.setDiskTotal(totalGB);
-                log.info("✅ Disco TOTAL coletado via método inteligente! {} KB = {} GB", totalKB, totalGB);
-            } else {
-                log.warn("⚠️ Disco TOTAL não disponível via método inteligente");
+                log.info("✅ Disco TOTAL (fallback): {} GB", totalGB);
             }
-            
-            // Disco Usado
-            String diskUsedValue = snmp.getDiskUsed();
-            if (diskUsedValue != null && !diskUsedValue.trim().isEmpty()) {
-                Long usedKB = Long.parseLong(diskUsedValue.trim());
-                Long usedGB = usedKB / (1024 * 1024);
-                status.setDiskUsed(usedGB);
-                log.info("✅ Disco USADO coletado via método inteligente! {} KB = {} GB", usedKB, usedGB);
-            } else {
-                log.warn("⚠️ Disco USADO não disponível via método inteligente");
-            }
-            
-            // Disco Disponível
-            String diskAvailValue = snmp.getDiskAvailable();
-            if (diskAvailValue != null && !diskAvailValue.trim().isEmpty()) {
-                Long availKB = Long.parseLong(diskAvailValue.trim());
-                Long availGB = availKB / (1024 * 1024);
-                status.setDiskAvailable(availGB);
-                log.info("✅ Disco DISPONÍVEL coletado via método inteligente! {} KB = {} GB", availKB, availGB);
-            } else {
-                log.warn("⚠️ Disco DISPONÍVEL não disponível via método inteligente");
-            }
-            
         } catch (Exception e) {
-            log.error("❌ Erro ao coletar disco via métodos inteligentes: {}", e.getMessage());
-            
-            // Fallback para coleta manual (Net-SNMP Linux)
-            log.debug("Tentando fallback manual para disco...");
-            for (int index : new int[]{1, 0, 2}) {
-                try {
-                    String diskTotal = snmp.getAsString(SnmpHelper.OID_DISK_TOTAL + "." + index);
-                    if (diskTotal != null && !diskTotal.contains("noSuch")) {
-                        Long totalKB = Long.parseLong(diskTotal.trim());
-                        status.setDiskTotal(totalKB / (1024 * 1024));
-                        log.info("✅ Disco TOTAL via fallback índice {}: {} KB", index, totalKB);
-                        break;
-                    }
-                } catch (Exception ex) {
-                    log.debug("❌ Fallback disco índice {} falhou: {}", index, ex.getMessage());
-                }
-            }
+            log.debug("❌ Fallback disco único falhou: {}", e.getMessage());
         }
         
         if (status.getDiskTotal() == null || status.getDiskTotal() == 0) {
-            log.warn("⚠️ DISCO: Todos os métodos falharam - pode ser Windows sem SNMP configurado ou Linux sem Net-SNMP");
+            log.warn("⚠️ DISCO: Todos os métodos falharam");
         }
     }
     
-    /**
-     * Coleta informações de rede
-     */
-    private void collectNetworkMetrics(SnmpHelper snmp, ServerStatusDto status) {
-        try {
-            String ifCount = snmp.getInterfaceCount();
-            if (ifCount != null && !ifCount.isEmpty()) {
-                status.setInterfaceCount(Integer.parseInt(ifCount));
-            }
-        } catch (Exception e) {
-            log.debug("Erro ao coletar métricas de rede: {}", e.getMessage());
-        }
-    }
+
     
     /**
      * Converte string para double, tratando diferentes formatos
