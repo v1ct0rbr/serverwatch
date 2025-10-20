@@ -17,6 +17,8 @@ import com.victorqueiroga.serverwatch.service.ServerMonitoringService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 /**
  * API REST para monitoramento de servidores
@@ -65,6 +67,8 @@ public class MonitoringApiController {
                 status.getServerName(), status.getStatus());
         return ResponseEntity.ok(status);
     }
+
+    
 
     /**
      * POST /api/monitoring/servers/{serverId}/refresh

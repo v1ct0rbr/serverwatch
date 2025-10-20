@@ -135,7 +135,6 @@ public class AlertService {
         alert.setStatus(Alert.AlertStatus.OPEN);
         alert.setResolved(false);
         alert.setCreatedAt(LocalDateTime.now());
-
         return save(alert);
     }
 

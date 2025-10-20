@@ -98,9 +98,11 @@
                         </h5>
                     </div>
                     <div class="card-body">
+                        <input type="hidden" th:value="${server.id}" id="server_id">                                    
                         <table class="table table-borderless">
                             <tbody>
                                 <tr>
+                                    
                                     <td class="fw-bold text-muted">ID:</td>
                                     <td th:text="${server.id}">#1</td>
                                 </tr>
@@ -146,25 +148,13 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="text-success mb-2">
-                                        <i class="bi bi-wifi" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h6 class="mb-0">Conectividade</h6>
-                                    <span class="badge bg-success">Ativa</span>
+                        <div class="row g-3" id="connection-status">
+                            <div class="col-12 text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Carregando Status..</span>
                                 </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="text-primary mb-2">
-                                        <i class="bi bi-speedometer2" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h6 class="mb-0">Latência</h6>
-                                    <span class="text-muted">12ms</span>
-                                </div>
-                            </div>
+                                <div class="mt-2 text-muted">Carregando dados de Conectividade</div>
+                            </div>                          
                         </div>
                         <hr>
                         <div class="d-flex justify-content-between">
@@ -379,4 +369,8 @@
         setInterval(updateStats, 30000);
     </script>
 </body>
+
+<th:block th:fragment="scripts">    
+    <script th:src="@{/js/servers-view.js}"></script>
+</th:block>
 </html>
