@@ -133,6 +133,12 @@
                                         </span>
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td class="fw-bold text-muted">Última Atualização:</td>
+                                    <td>
+                                        <span class="badge bg-secondary"  id="last-update-time">Servidor</span>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -162,113 +168,16 @@
                             <small class="text-muted">há 30 segundos</small>
                         </div>
                         <div class="mt-2">
-                            <button class="btn btn-outline-primary btn-sm w-100">
+                            <button class="btn btn-outline-primary btn-sm w-100" id="test_connection" th:attr="data-ip=${server.ipAddress}">
                                 <i class="bi bi-arrow-clockwise me-1"></i>Testar Conectividade
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+           
 
-            <!-- Estatísticas Rápidas -->
-            <div class="col-md-12 mb-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-graph-up me-2"></i>Estatísticas de Monitoramento
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <div class="text-success mb-2">
-                                        <i class="bi bi-check-circle" style="font-size: 1.5rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1">Uptime</h6>
-                                    <div class="fw-bold text-success">99.8%</div>
-                                    <small class="text-muted">Últimos 30 dias</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <div class="text-info mb-2">
-                                        <i class="bi bi-clock" style="font-size: 1.5rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1">Tempo Médio</h6>
-                                    <div class="fw-bold text-info">15ms</div>
-                                    <small class="text-muted">Resposta</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <div class="text-warning mb-2">
-                                        <i class="bi bi-exclamation-triangle" style="font-size: 1.5rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1">Alertas</h6>
-                                    <div class="fw-bold text-warning">3</div>
-                                    <small class="text-muted">Este mês</small>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="text-center">
-                                    <div class="text-danger mb-2">
-                                        <i class="bi bi-x-circle" style="font-size: 1.5rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1">Falhas</h6>
-                                    <div class="fw-bold text-danger">1</div>
-                                    <small class="text-muted">Este mês</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Ações Rápidas -->
-            <div class="col-md-12 mb-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-lightning me-2"></i>Ações Rápidas
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <button class="btn btn-outline-primary w-100">
-                                    <i class="bi bi-activity me-2"></i>
-                                    <div>Monitorar Agora</div>
-                                    <small class="d-block text-muted">Executar verificação manual</small>
-                                </button>
-                            </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-outline-info w-100">
-                                    <i class="bi bi-graph-up me-2"></i>
-                                    <div>Ver Relatórios</div>
-                                    <small class="d-block text-muted">Histórico de monitoramento</small>
-                                </button>
-                            </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-outline-warning w-100">
-                                    <i class="bi bi-bell me-2"></i>
-                                    <div>Configurar Alertas</div>
-                                    <small class="d-block text-muted">Definir notificações</small>
-                                </button>
-                            </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-outline-secondary w-100">
-                                    <i class="bi bi-terminal me-2"></i>
-                                    <div>Logs do Sistema</div>
-                                    <small class="d-block text-muted">Visualizar logs</small>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        </div>    
 
     <!-- Modal de confirmação de exclusão -->
     <div class="modal fade" id="deleteModal" tabindex="-1">

@@ -1,6 +1,7 @@
 package com.victorqueiroga.serverwatch.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -595,8 +596,10 @@ public class ServerMonitoringService {
      * Testa conectividade SNMP e quais OIDs funcionam em um servidor específico
      */
     public String testServerSnmp(String serverIp) {
+        log.info("Testando conectividade SNMP para: {}", serverIp);
         StringBuilder result = new StringBuilder();
         result.append("=== TESTE SNMP DETALHADO PARA: ").append(serverIp).append(" ===\n\n");
+        
         
         SnmpHelper snmp = new SnmpHelper(serverIp, DEFAULT_COMMUNITY);
         
@@ -606,6 +609,7 @@ public class ServerMonitoringService {
             SnmpHelper.OID_SYS_UPTIME + "|System Uptime", 
             SnmpHelper.OID_HOSTNAME + "|Hostname"
         };
+        log.debug("Testando OIDs básicos: {}", Arrays.toString(basicOids));
         
         result.append("📋 INFORMAÇÕES BÁSICAS:\n");
         for (String oidInfo : basicOids) {
@@ -624,6 +628,7 @@ public class ServerMonitoringService {
                 result.append("❌ ").append(name).append(": ERRO - ").append(e.getMessage()).append("\n");
             }
         }
+        log.debug("OIDs básicos testados com sucesso");
         
         // Testa OIDs de CPU
         result.append("\n🖥️ MÉTRICAS DE CPU:\n");
@@ -651,6 +656,8 @@ public class ServerMonitoringService {
                 result.append("❌ ").append(name).append(": ERRO - ").append(e.getMessage()).append("\n");
             }
         }
+
+        log.debug("OIDs de CPU testados com sucesso");
         
         // Testa OIDs de Memória
         result.append("\n💾 MÉTRICAS DE MEMÓRIA:\n");
@@ -677,6 +684,8 @@ public class ServerMonitoringService {
                 result.append("❌ ").append(name).append(": ERRO - ").append(e.getMessage()).append("\n");
             }
         }
+
+        log.debug("OIDs de Memória testados com sucesso");
         
         // Testa OIDs de Disco
         result.append("\n💿 MÉTRICAS DE DISCO:\n");
@@ -709,6 +718,7 @@ public class ServerMonitoringService {
             }
         }
         
+        log.debug("OIDs de Disco testados com sucesso");
         return result.toString();
     }
 

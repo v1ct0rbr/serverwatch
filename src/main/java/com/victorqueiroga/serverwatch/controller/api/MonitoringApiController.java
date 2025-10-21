@@ -17,7 +17,6 @@ import com.victorqueiroga.serverwatch.service.ServerMonitoringService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.RequestParam;
 
 
 /**
@@ -68,6 +67,7 @@ public class MonitoringApiController {
         return ResponseEntity.ok(status);
     }
 
+    
     
 
     /**
@@ -171,10 +171,10 @@ public class MonitoringApiController {
 
     /**
      * GET /api/monitoring/test-snmp/{serverId}
-     * Testa SNMP de um servidor específico para debug
+     * Testa SNMP de um servidor específico para debug - Retorna JSON
      */
     @GetMapping("/test-snmp/{serverId}")
-    public ResponseEntity<String> testServerSnmp(@PathVariable Long serverId) {
+    public ResponseEntity<?> testServerSnmp(@PathVariable Long serverId) {
         log.info("API: Testando SNMP do servidor ID: {}", serverId);
         
         try {
@@ -191,101 +191,82 @@ public class MonitoringApiController {
             com.victorqueiroga.serverwatch.utils.SnmpHelper snmpHelper = 
                 new com.victorqueiroga.serverwatch.utils.SnmpHelper(server.getIpAddress(), "public");
             
-            StringBuilder result = new StringBuilder();
-            result.append("=== TESTE SNMP PARA ").append(server.getName()).append(" ===\n");
-            result.append("IP: ").append(server.getIpAddress()).append("\n");
-            result.append("Community: public\n\n");
+            // Cria objeto JSON com resultados dos testes
+            java.util.Map<String, Object> testResult = new java.util.HashMap<>();
+            testResult.put("serverName", server.getName());
+            testResult.put("ipAddress", server.getIpAddress());
+            testResult.put("community", "public");
             
             // Testa OIDs básicos
+            java.util.Map<String, String> basicInfo = new java.util.HashMap<>();
             try {
-                String sysDescr = snmpHelper.getAsString("1.3.6.1.2.1.1.1.0");
-                result.append("[OK] System Description: ").append(sysDescr).append("\n");
+                basicInfo.put("systemDescription", snmpHelper.getAsString("1.3.6.1.2.1.1.1.0"));
             } catch (Exception e) {
-                result.append("[FAIL] System Description: ").append(e.getMessage()).append("\n");
+                basicInfo.put("systemDescription", "ERROR: " + e.getMessage());
             }
             
             try {
-                String hostname = snmpHelper.getAsString("1.3.6.1.2.1.1.5.0");
-                result.append("[OK] Hostname: ").append(hostname).append("\n");
+                basicInfo.put("hostname", snmpHelper.getAsString("1.3.6.1.2.1.1.5.0"));
             } catch (Exception e) {
-                result.append("[FAIL] Hostname: ").append(e.getMessage()).append("\n");
+                basicInfo.put("hostname", "ERROR: " + e.getMessage());
             }
             
             try {
-                String uptime = snmpHelper.getAsString("1.3.6.1.2.1.1.3.0");
-                result.append("[OK] Uptime: ").append(uptime).append("\n");
+                basicInfo.put("uptime", snmpHelper.getAsString("1.3.6.1.2.1.1.3.0"));
             } catch (Exception e) {
-                result.append("[FAIL] Uptime: ").append(e.getMessage()).append("\n");
+                basicInfo.put("uptime", "ERROR: " + e.getMessage());
             }
+            
+            testResult.put("basicInfo", basicInfo);
             
             // Testa CPU
-            result.append("\n=== CPU ===\n");
+            java.util.Map<String, String> cpuInfo = new java.util.HashMap<>();
             try {
-                String cpuLoad = snmpHelper.getCpuLoad1Min();
-                result.append("[OK] CPU Load: ").append(cpuLoad).append("\n");
+                cpuInfo.put("cpuLoad", snmpHelper.getCpuLoad1Min());
+                cpuInfo.put("status", "OK");
             } catch (Exception e) {
-                result.append("[FAIL] CPU Load: ").append(e.getMessage()).append("\n");
+                cpuInfo.put("cpuLoad", null);
+                cpuInfo.put("status", "ERROR");
+                cpuInfo.put("error", e.getMessage());
             }
+            testResult.put("cpu", cpuInfo);
             
             // Testa Memory
-            result.append("\n=== MEMORY ===\n");
+            java.util.Map<String, String> memoryInfo = new java.util.HashMap<>();
             try {
-                String memTotal = snmpHelper.getMemoryTotal();
-                result.append("[OK] Memory Total: ").append(memTotal).append(" KB\n");
+                memoryInfo.put("total", snmpHelper.getMemoryTotal() + " KB");
+                memoryInfo.put("used", snmpHelper.getMemoryUsed() + " KB");
+                memoryInfo.put("available", snmpHelper.getMemoryAvailable() + " KB");
+                memoryInfo.put("status", "OK");
             } catch (Exception e) {
-                result.append("[FAIL] Memory Total: ").append(e.getMessage()).append("\n");
+                memoryInfo.put("status", "ERROR");
+                memoryInfo.put("error", e.getMessage());
             }
+            testResult.put("memory", memoryInfo);
             
+            // Testa Disk (todos os discos)
+            java.util.Map<String, Object> diskInfo = new java.util.HashMap<>();
             try {
-                String memUsed = snmpHelper.getMemoryUsed();
-                result.append("[OK] Memory Used: ").append(memUsed).append(" KB\n");
+                java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> disks = snmpHelper.getAllDisks();
+                diskInfo.put("count", disks.size());
+                diskInfo.put("disks", disks);
+                diskInfo.put("status", "OK");
             } catch (Exception e) {
-                result.append("[FAIL] Memory Used: ").append(e.getMessage()).append("\n");
+                diskInfo.put("status", "ERROR");
+                diskInfo.put("error", e.getMessage());
             }
+            testResult.put("disk", diskInfo);
             
-            try {
-                String memAvail = snmpHelper.getMemoryAvailable();
-                result.append("[OK] Memory Available: ").append(memAvail).append(" KB\n");
-            } catch (Exception e) {
-                result.append("[FAIL] Memory Available: ").append(e.getMessage()).append("\n");
-            }
-            
-            // Testa Disk
-            result.append("\n=== DISK ===\n");
-            try {
-                String diskTotal = snmpHelper.getDiskTotal();
-                result.append("[OK] Disk Total: ").append(diskTotal).append(" KB\n");
-            } catch (Exception e) {
-                result.append("[FAIL] Disk Total: ").append(e.getMessage()).append("\n");
-            }
-            
-            try {
-                String diskUsed = snmpHelper.getDiskUsed();
-                result.append("[OK] Disk Used: ").append(diskUsed).append(" KB\n");
-            } catch (Exception e) {
-                result.append("[FAIL] Disk Used: ").append(e.getMessage()).append("\n");
-            }
-            
-            // Testa Network
-            result.append("\n=== NETWORK ===\n");
-            try {
-                String ifCount = snmpHelper.getInterfaceCount();
-                result.append("[OK] Interface Count: ").append(ifCount).append("\n");
-            } catch (Exception e) {
-                result.append("[FAIL] Interface Count: ").append(e.getMessage()).append("\n");
-            }
-            
-            result.append("\n=== FIM TESTE ===");
+            testResult.put("timestamp", java.time.LocalDateTime.now().toString());
             
             log.info("Teste SNMP concluído para {}", server.getName());
-            return ResponseEntity.ok()
-                    .header("Content-Type", "text/plain; charset=utf-8")
-                    .body(result.toString());
+            return ResponseEntity.ok(testResult);
             
         } catch (Exception e) {
             log.error("Erro no teste SNMP: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError()
-                    .body("Erro no teste SNMP: " + e.getMessage());
+            java.util.Map<String, String> error = new java.util.HashMap<>();
+            error.put("error", "Erro no teste SNMP: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
         }
     }
 

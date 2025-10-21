@@ -13,23 +13,33 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('Inicializando página de monitoramento');
 
     loadServerInfo();
-    // Solicita permissão para notificações
-    if (desktopNotifications && 'Notification' in window) {
-        Notification.requestPermission();
-    }
+
+    document.getElementById('test_connection').addEventListener('click', function () {
+        const serverIp = this.getAttribute('data-ip');
+        
+        // Solicita permissão para notificações dentro do handler de evento do usuário
+        if (desktopNotifications && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                console.log('Permissão de notificação:', permission);
+            });
+        }
+
+        testConnectivity(serverIp);
+    });
 });
 
 // Carrega dados de monitoramento (usa cache se disponível)
 async function loadServerInfo() {
     const serverId = document.getElementById('server_id').value;
+
     try {
         console.log('Carregando dados de monitoramento via cache...');
         const [summaryResponse] = await Promise.all([
-            fetch(`/api/servers/${serverId}`),            
+            fetch(`/api/monitoring/servers/${serverId}`),
         ]);
 
-        const summary = await summaryResponse.json();       
-     
+        const summary = await summaryResponse.json();
+
         updateServerConnectionStatus(summary.online);
 
         // Atualiza timestamp
@@ -46,9 +56,13 @@ function updateServerConnectionStatus(isConnected) {
     const connectionStatusDiv = document.getElementById('connection-status');
     if (isConnected) {
         connectionStatusDiv.innerHTML = `
-            <span class="text-success">
-                <i class="fas fa-wifi"></i> Conectado ao servidor de monitoramento
-            </span>
+           <div class="text-center">
+                                    <div class="text-success mb-2">
+                                        <i class="bi bi-wifi" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h6 class="mb-0">Conectividade</h6>
+                                    <span class="badge bg-success">Ativa</span>
+                                </div>
         `;
     } else {
         connectionStatusDiv.innerHTML = `
@@ -57,25 +71,42 @@ function updateServerConnectionStatus(isConnected) {
             </span>
         `;
     }
-     /*  <div class="col-6">
-                                <div class="text-center">
-                                    <div class="text-success mb-2">
-                                        <i class="bi bi-wifi" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h6 class="mb-0">Conectividade</h6>
-                                    <span class="badge bg-success">Ativa</span>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="text-center">
-                                    <div class="text-primary mb-2">
-                                        <i class="bi bi-speedometer2" style="font-size: 2rem;"></i>
-                                    </div>
-                                    <h6 class="mb-0">Latência</h6>
-                                    <span class="text-muted">12ms</span>
-                                </div>
-                            </div>
- */
+    /*  <div class="col-6">
+                               <div class="text-center">
+                                   <div class="text-success mb-2">
+                                       <i class="bi bi-wifi" style="font-size: 2rem;"></i>
+                                   </div>
+                                   <h6 class="mb-0">Conectividade</h6>
+                                   <span class="badge bg-success">Ativa</span>
+                               </div>
+                           </div>
+                           <div class="col-6">
+                               <div class="text-center">
+                                   <div class="text-primary mb-2">
+                                       <i class="bi bi-speedometer2" style="font-size: 2rem;"></i>
+                                   </div>
+                                   <h6 class="mb-0">Latência</h6>
+                                   <span class="text-muted">12ms</span>
+                               </div>
+                           </div>
+*/
+}
+
+async function testConnectivity(serverIp) {
+    document.getElementById('test_connection').disabled = true;
+    document.getElementById('test_connection').innerHTML = `
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Testando...
+    `;
+    const [test] = await Promise.all([
+        fetch(`/api/monitoring/test/${serverIp}`),
+    ]);
+    const result = await test.json();
+    document.getElementById('test_connection').disabled = false;
+    document.getElementById('test_connection').innerHTML = `
+        <i class="bi bi-arrow-clockwise me-1"></i>Testar Conectividade
+    `;
+    console.log('Resultado do teste de conectividade:', result);
 }
 
 // Cria seção de métricas para servidores online
