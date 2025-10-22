@@ -226,14 +226,14 @@ public class SnmpHelper {
      * MIB. Tenta em todos os sistemas operacionais, pois é a métrica mais
      * universal de 'uso'.
      */
-     @Deprecated
+    @Deprecated
     public String getCpuLoadPercent() throws Exception {
         return getCpuLoad1Min();
     }
 
     public Double getCpuUsagePercent() throws Exception {
         System.out.println("\n=== Iniciando coleta de CPU ===");
-        
+
         try {
             if (isLinuxSystem()) {
                 return getLinuxCpuUsage();
@@ -247,73 +247,59 @@ public class SnmpHelper {
         }
     }
 
-      private Double getLinuxCpuUsage() throws Exception {
+    private Double getLinuxCpuUsage() throws Exception {
         System.out.println("📊 Detectado: Sistema Linux/Unix");
-        
+
         // MÉTODO 1: Percentuais pré-calculados (mais preciso)
         try {
             String idlePercent = getAsString(OID_SS_CPU_IDLE_PERCENT);
             if (idlePercent != null && !idlePercent.contains("noSuch")) {
                 double idle = Double.parseDouble(idlePercent.trim());
                 double usage = 100.0 - idle;
-                
+
                 // Validação
                 if (usage >= 0 && usage <= 100) {
                     System.out.println("✅ CPU (Net-SNMP Percentual): " + String.format("%.2f%%", usage));
-                    return usage;
+                    return clampPercent(usage);
                 }
             }
         } catch (Exception e) {
             System.out.println("⚠️  Net-SNMP Percentual não disponível: " + e.getMessage());
         }
-        
+
         // MÉTODO 2: Cálculo via User + System percentuais
         try {
             String userPercent = getAsString(OID_SS_CPU_USER_PERCENT);
             String systemPercent = getAsString(OID_SS_CPU_SYSTEM_PERCENT);
-            
-            if (userPercent != null && systemPercent != null 
+
+            if (userPercent != null && systemPercent != null
                     && !userPercent.contains("noSuch") && !systemPercent.contains("noSuch")) {
                 double user = Double.parseDouble(userPercent.trim());
                 double system = Double.parseDouble(systemPercent.trim());
                 double usage = user + system;
-                
+
                 if (usage >= 0 && usage <= 100) {
                     System.out.println("✅ CPU (User+System): " + String.format("%.2f%%", usage));
-                    return usage;
+                    return clampPercent(usage);
                 }
             }
         } catch (Exception e) {
             System.out.println("⚠️  User+System não disponível: " + e.getMessage());
         }
-        
-        // MÉTODO 3: Load Average convertido para porcentagem
-        try {
-            return getLoadAverageAsPercent();
-        } catch (Exception e) {
-            System.out.println("⚠️  Load Average não disponível: " + e.getMessage());
-        }
-        
-        throw new Exception("Nenhum método de coleta de CPU funcionou para Linux");
-    }
 
-     private Double getWindowsCpuUsage() throws Exception {
-        System.out.println("📊 Detectado: Sistema Windows");
-        
-        // MÉTODO 1: Host Resources Processor Load (mais comum)
+        // MÉTODO 3: Host Resources MIB (funciona em muitos Linux)
         try {
             List<VariableBinding> cpuLoads = snmpWalk(OID_HR_PROCESSOR_LOAD);
-            
+
             if (!cpuLoads.isEmpty()) {
                 double totalLoad = 0;
                 int validCount = 0;
-                
+
                 for (VariableBinding vb : cpuLoads) {
                     try {
                         String valueStr = vb.getVariable().toString().trim();
                         double load = Double.parseDouble(valueStr);
-                        
-                        // Validação: carga entre 0 e 100
+
                         if (load >= 0 && load <= 100) {
                             totalLoad += load;
                             validCount++;
@@ -321,70 +307,165 @@ public class SnmpHelper {
                     } catch (NumberFormatException ignored) {
                     }
                 }
-                
+
                 if (validCount > 0) {
                     double avgLoad = totalLoad / validCount;
-                    System.out.println("✅ CPU (Host Resources): " + String.format("%.2f%%", avgLoad) 
+                    System.out.println("✅ CPU (Host Resources): " + String.format("%.2f%%", avgLoad)
                             + " (média de " + validCount + " cores)");
+                    return clampPercent(avgLoad);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️  Host Resources MIB não disponível em Linux: " + e.getMessage());
+        }
+
+        // MÉTODO 4: Load Average convertido para porcentagem
+        try {
+            return getLoadAverageAsPercent();
+        } catch (Exception e) {
+            System.out.println("⚠️  Load Average não disponível: " + e.getMessage());
+        }
+
+        throw new Exception("Nenhum método de coleta de CPU funcionou para Linux");
+    }
+
+   
+    private Double getWindowsCpuUsage() throws Exception {
+        System.out.println("📊 Detectado: Sistema Windows");
+
+        // MÉTODO 1: Host Resources MIB - média de hrProcessorLoad por core
+        try {
+            List<VariableBinding> cpuLoads = snmpWalk(OID_HR_PROCESSOR_LOAD);
+
+            if (!cpuLoads.isEmpty()) {
+                double totalLoad = 0;
+                int validCount = 0;
+
+                for (VariableBinding vb : cpuLoads) {
+                    try {
+                        String valueStr = vb.getVariable().toString().trim();
+                        double load = Double.parseDouble(valueStr);
+
+                        // Validação: 0..100
+                        if (load >= 0 && load <= 100) {
+                            totalLoad += load;
+                            validCount++;
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+
+                if (validCount > 0) {
+                    double avgLoad = totalLoad / validCount;
+                    System.out.println("✅ CPU (Host Resources média de " + validCount + " cores): "
+                            + String.format("%.2f%%", avgLoad));
                     return avgLoad;
                 }
             }
         } catch (Exception e) {
-            System.out.println("⚠️  Host Resources MIB não disponível: " + e.getMessage());
+            System.out.println("⚠️  Host Resources MIB (walk) não disponível: " + e.getMessage());
         }
-        
-        // MÉTODO 2: OID específico do Windows (raro)
+
+        // MÉTODO 2: Host Resources MIB - tentar índices comuns individuais
+        int[] commonIndexes = {1, 2, 0, 196608};
+        double total = 0;
+        int count = 0;
+        for (int idx : commonIndexes) {
+            try {
+                String value = getAsString(OID_HR_PROCESSOR_LOAD + "." + idx);
+                if (value != null && !value.contains("noSuch")) {
+                    double load = Double.parseDouble(value.trim());
+                    if (load >= 0 && load <= 100) {
+                        total += load;
+                        count++;
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        if (count == 0) {
+            // Última tentativa com varredura de 1..32
+            for (int idx = 1; idx <= 32; idx++) {
+                try {
+                    String value = getAsString(OID_HR_PROCESSOR_LOAD + "." + idx);
+                    if (value != null && !value.contains("noSuch")) {
+                        double load = Double.parseDouble(value.trim());
+                        if (load >= 0 && load <= 100) {
+                            total += load;
+                            count++;
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        if (count > 0) {
+            double avg = total / count;
+            System.out.println("✅ CPU (Host Resources índices individuais): " + String.format("%.2f%%", avg)
+                    + " (" + count + " núcleos)");
+            return avg;
+        }
+
+        // MÉTODO 3: OID específico Windows (pode variar por agente SNMP)
         try {
-            String winCpu = getAsString(OID_WIN_CPU_UTIL + ".1");
-            if (winCpu != null && !winCpu.contains("noSuch")) {
-                double usage = Double.parseDouble(winCpu.trim());
-                if (usage >= 0 && usage <= 100) {
-                    System.out.println("✅ CPU (Windows OID): " + String.format("%.2f%%", usage));
-                    return usage;
+            // Tenta alguns índices usuais
+            String[] candidates = {OID_WIN_CPU_UTIL + ".0", OID_WIN_CPU_UTIL + ".1", OID_WIN_CPU_UTIL};
+            for (String oid : candidates) {
+                try {
+                    String winCpu = getAsString(oid);
+                    if (winCpu != null && !winCpu.contains("noSuch")) {
+                        double usage = Double.parseDouble(winCpu.trim());
+                        if (usage >= 0 && usage <= 100) {
+                            System.out.println("✅ CPU (Windows OID): " + String.format("%.2f%%", usage)
+                                    + " via " + oid);
+                            return usage;
+                        }
+                    }
+                } catch (Exception ignored) {
                 }
             }
         } catch (Exception e) {
             System.out.println("⚠️  Windows OID específico não disponível: " + e.getMessage());
         }
-        
+
         throw new Exception("Nenhum método de coleta de CPU funcionou para Windows");
     }
 
-     private Double getLoadAverageAsPercent() throws Exception {
+    private Double getLoadAverageAsPercent() throws Exception {
         String load1min = getAsString(OID_CPU_LOAD_1MIN);
-        
+
         if (load1min != null && !load1min.contains("noSuch")) {
             double load = Double.parseDouble(load1min.trim());
-            
+
             // Tenta detectar número de CPUs
             int cpuCount = getCpuCount();
-            
+
             // Calcula porcentagem baseada no load e número de CPUs
             double percent = (load / cpuCount) * 100.0;
-            
+
             // Limita entre 0 e 100
             percent = Math.min(100.0, Math.max(0.0, percent));
-            
-            System.out.println("✅ CPU (Load Average): " + String.format("%.2f", load) 
-                    + " → " + String.format("%.2f%%", percent) 
+
+            System.out.println("✅ CPU (Load Average): " + String.format("%.2f", load)
+                    + " → " + String.format("%.2f%%", percent)
                     + " (" + cpuCount + " cores)");
-            
-            return percent;
+
+            return clampPercent(percent);
         }
-        
+
         throw new Exception("Load Average não disponível");
     }
 
-     private Double getFallbackCpuUsage() throws Exception {
+    private Double getFallbackCpuUsage() throws Exception {
         System.out.println("⚠️  Tentando método de fallback genérico...");
-        
+
         // Tenta Host Resources mesmo em Linux (alguns suportam)
         try {
             List<VariableBinding> cpuLoads = snmpWalk(OID_HR_PROCESSOR_LOAD);
             if (!cpuLoads.isEmpty()) {
                 double totalLoad = 0;
                 int count = 0;
-                
+
                 for (VariableBinding vb : cpuLoads) {
                     try {
                         double load = Double.parseDouble(vb.getVariable().toString().trim());
@@ -395,35 +476,49 @@ public class SnmpHelper {
                     } catch (NumberFormatException ignored) {
                     }
                 }
-                
+
                 if (count > 0) {
                     double avg = totalLoad / count;
                     System.out.println("✅ CPU (Fallback HR): " + String.format("%.2f%%", avg));
-                    return avg;
+                    return clampPercent(avg);
                 }
             }
         } catch (Exception e) {
             System.out.println("⚠️  Fallback HR falhou: " + e.getMessage());
         }
-        
+
         throw new Exception("Todos os métodos de coleta de CPU falharam");
     }
-    
+
     /**
      * Tenta detectar o número de CPUs/cores do sistema
      */
     private int getCpuCount() {
         try {
+            // 1) Tentar contar entradas de hrProcessorLoad (mais comum)
+            List<VariableBinding> loads = snmpWalk(OID_HR_PROCESSOR_LOAD);
+            if (!loads.isEmpty()) {
+                return Math.max(1, loads.size());
+            }
+
+            // 2) Fallback: contar entradas de FRWID
             List<VariableBinding> processors = snmpWalk(OID_HR_PROCESSOR_FRWID);
             if (!processors.isEmpty()) {
-                return processors.size();
+                return Math.max(1, processors.size());
             }
         } catch (Exception e) {
             // Ignora erro
         }
-        
+
         // Fallback: assume 1 core se não conseguir detectar
         return 1;
+    }
+
+    private double clampPercent(double v) {
+        if (Double.isNaN(v) || Double.isInfinite(v)) {
+            return 0.0;
+        }
+        return Math.max(0.0, Math.min(100.0, v));
     }
 
     /**
@@ -440,7 +535,6 @@ public class SnmpHelper {
         }
     }
 
-   
     /**
      * Obtém a memória total (inteligente por SO)
      */

@@ -13,6 +13,10 @@ spring:
     basename: i18n/messages
     encoding: UTF-8
     cache-duration: 3600
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
   
   security:
     oauth2:
