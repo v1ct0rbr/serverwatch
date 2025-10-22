@@ -49,9 +49,13 @@ public class ServerStatusDto {
     private Long diskUsed;
     private Long diskAvailable;
     private Double diskUsagePercent;
+
+    
     
     // Lista de discos (novo)
     private List<DiskInfoDto> diskList = new ArrayList<>();
+
+    private String criticalDiskLetters;
     
     // Tempos
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -116,6 +120,20 @@ public class ServerStatusDto {
         if (diskTotal != null && diskUsed != null && diskTotal > 0) {
             diskUsagePercent = (diskUsed.doubleValue() / diskTotal.doubleValue()) * 100.0;
         }
+    }
+
+    public void calculateCriticalDiskLetters() {
+        StringBuilder criticalLetters = new StringBuilder();
+        for (DiskInfoDto disk : diskList) {
+            String letter = disk.verifyCriticalDiskLetter();
+            if (letter != null) {
+                if (criticalLetters.length() > 0) {
+                    criticalLetters.append(", ");
+                }
+                criticalLetters.append(letter);
+            }
+        }
+        this.criticalDiskLetters = criticalLetters.toString();
     }
     
     /**

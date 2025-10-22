@@ -9,18 +9,18 @@ let soundAlerts = true;
 let desktopNotifications = true;
 
 // Inicialização da página
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('Inicializando página de monitoramento');
-    
+
     // Carrega configurações salvas
     loadSettings();
-    
+
     // Carrega dados iniciais
     loadMonitoringData();
-    
+
     // Inicia atualização automática
     startAutoRefresh();
-    
+
     // Solicita permissão para notificações
     if (desktopNotifications && 'Notification' in window) {
         Notification.requestPermission();
@@ -57,7 +57,7 @@ async function loadMonitoringData() {
 async function forceRefreshData() {
     try {
         console.log('=== FORÇANDO REFRESH SNMP COMPLETO ===');
-        
+
         // Mostra loading
         const container = document.getElementById('servers-container');
         const loadingHtml = `
@@ -70,7 +70,7 @@ async function forceRefreshData() {
             </div>
         `;
         container.innerHTML = loadingHtml;
-        
+
         // Força refresh via API
         const [summaryResponse, refreshResponse] = await Promise.all([
             fetch('/api/monitoring/summary'),
@@ -79,7 +79,7 @@ async function forceRefreshData() {
 
         const summary = await summaryResponse.json();
         const servers = await refreshResponse.json();
-        
+
         console.log('=== REFRESH SNMP CONCLUÍDO ===');
         console.log('Resumo atualizado:', summary);
         console.log('Servidores atualizados:', servers);
@@ -89,7 +89,7 @@ async function forceRefreshData() {
 
         // Atualiza timestamp
         document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
-        
+
         // Mostra sucesso
         showSuccess('Dados atualizados via SNMP com sucesso!');
 
@@ -110,7 +110,7 @@ function updateSummaryCards(summary) {
 // Exibe lista de servidores
 function displayServers(servers) {
     const container = document.getElementById('servers-container');
-    
+
     if (servers.length === 0) {
         container.innerHTML = `
             <div class="col-12 text-center py-5">
@@ -124,7 +124,7 @@ function displayServers(servers) {
         `;
         return;
     }
-    
+
     container.innerHTML = servers.map(server => createServerCard(server)).join('');
 }
 
@@ -133,7 +133,7 @@ function createServerCard(server) {
     const statusClass = server.status.toLowerCase();
     const statusIcon = getStatusIcon(server.status);
     const statusText = getStatusText(server.status);
-    
+
     return `
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card server-card ${statusClass}" data-server-id="${server.serverId}">
@@ -195,7 +195,7 @@ function createMetricsSection(server) {
     console.log('Memory Total:', server.memoryTotal, 'Used:', server.memoryUsed, 'Usage%:', server.memoryUsagePercent);
     console.log('Disk Total:', server.diskTotal, 'Used:', server.diskUsed, 'Usage%:', server.diskUsagePercent);
     console.log('Interface Count:', server.interfaceCount);
-    
+
     return `
         <div class="metrics-section">
             ${server.uptime ? `
@@ -325,7 +325,7 @@ async function refreshServer(serverId) {
         const response = await fetch(`/api/monitoring/servers/${serverId}/refresh`, {
             method: 'POST'
         });
-        
+
         if (response.ok) {
             // Recarrega dados após atualização
             setTimeout(() => loadMonitoringData(), 1000);
@@ -342,7 +342,7 @@ async function refreshServer(serverId) {
 async function refreshAllServers() {
     const refreshBtn = document.querySelector('.refresh-btn');
     refreshBtn.classList.add('spinning');
-    
+
     try {
         await loadMonitoringData();
     } finally {
@@ -355,7 +355,7 @@ function startAutoRefresh() {
     if (intervalId) {
         clearInterval(intervalId);
     }
-    
+
     intervalId = setInterval(loadMonitoringData, refreshInterval);
     console.log(`Auto-refresh iniciado com intervalo de ${refreshInterval}ms`);
 }
@@ -365,12 +365,12 @@ function loadSettings() {
     refreshInterval = parseInt(localStorage.getItem('monitoring-refresh-interval') || '30000');
     soundAlerts = localStorage.getItem('monitoring-sound-alerts') !== 'false';
     desktopNotifications = localStorage.getItem('monitoring-desktop-notifications') !== 'false';
-    
+
     // Atualiza interface se os elementos existirem
     const refreshSelect = document.getElementById('refresh-interval');
     const soundCheck = document.getElementById('sound-alerts');
     const notifCheck = document.getElementById('desktop-notifications');
-    
+
     if (refreshSelect) refreshSelect.value = refreshInterval / 1000;
     if (soundCheck) soundCheck.checked = soundAlerts;
     if (notifCheck) notifCheck.checked = desktopNotifications;
@@ -381,25 +381,25 @@ function saveSettings() {
     const refreshSelect = document.getElementById('refresh-interval');
     const soundCheck = document.getElementById('sound-alerts');
     const notifCheck = document.getElementById('desktop-notifications');
-    
+
     if (refreshSelect) refreshInterval = parseInt(refreshSelect.value) * 1000;
     if (soundCheck) soundAlerts = soundCheck.checked;
     if (notifCheck) desktopNotifications = notifCheck.checked;
-    
+
     // Salva no localStorage
     localStorage.setItem('monitoring-refresh-interval', refreshInterval.toString());
     localStorage.setItem('monitoring-sound-alerts', soundAlerts.toString());
     localStorage.setItem('monitoring-desktop-notifications', desktopNotifications.toString());
-    
+
     // Reinicia auto-refresh com novo intervalo
     startAutoRefresh();
-    
+
     // Fecha modal
     const modal = document.getElementById('settingsModal');
     if (modal && bootstrap.Modal.getInstance(modal)) {
         bootstrap.Modal.getInstance(modal).hide();
     }
-    
+
     showSuccess('Configurações salvas com sucesso!');
 }
 
@@ -410,11 +410,11 @@ function formatDateTime(dateTimeStr) {
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
@@ -478,13 +478,13 @@ function createDisksSection(server) {
             `;
         }
     }
-    
+
     // Múltiplos discos
     let disksHtml = `
         <div class="metric-row mb-2">
             <div class="d-flex justify-content-between align-items-center">
                 <small class="text-muted">
-                    <i class="fas fa-hdd me-1"></i>Discos (${server.diskList.length})
+                    <i class="fas fa-hdd me-1"></i>Discos (${server.diskList.length}) | ${server.criticalDiskLetters ? '<strong class="text-danger"> Críticos: ' + server.criticalDiskLetters + '</strong>' : 'Nenhum crítico'}
                 </small>
                 <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
                         data-bs-target="#disks-${server.serverId}" aria-expanded="false">
@@ -493,7 +493,7 @@ function createDisksSection(server) {
             </div>
             <div class="collapse mt-2" id="disks-${server.serverId}">
     `;
-    
+
     server.diskList.forEach((disk, index) => {
         disksHtml += `
             <div class="disk-item mb-2 p-2 border rounded">
@@ -519,12 +519,12 @@ function createDisksSection(server) {
             </div>
         `;
     });
-    
+
     disksHtml += `
             </div>
         </div>
     `;
-    
+
     return disksHtml;
 }
 
