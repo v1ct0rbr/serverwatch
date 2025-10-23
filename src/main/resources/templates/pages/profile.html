@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content}, ~{::style}, ~{::scripts})}">
 <head>
     <title>Perfil - ServerWatch</title>
 </head>
+<th:block th:fragment="style">
+    
+</th:block>
 <body>
 <div th:fragment="content">
     <div class="row justify-content-center">
@@ -147,30 +150,16 @@
                         <i class="fas fa-info-circle me-2"></i>
                         <strong>Gerenciamento de Conta:</strong> 
                         Suas informações de conta são gerenciadas pelo sistema Keycloak. 
-                        Para alterar dados pessoais, senha ou configurações de segurança, 
-                        acesse o portal de gerenciamento de conta do Keycloak.
+                       
                     </div>
                     
-                    <div class="row text-center">
-                        <div class="col-md-4">
-                            <i class="fas fa-lock fa-2x text-success mb-2"></i>
-                            <h6>Autenticação Segura</h6>
-                            <small class="text-muted">OAuth 2.0 + OpenID Connect</small>
-                        </div>
-                        <div class="col-md-4">
-                            <i class="fas fa-key fa-2x text-primary mb-2"></i>
-                            <h6>Tokens JWT</h6>
-                            <small class="text-muted">Criptografia de ponta a ponta</small>
-                        </div>
-                        <div class="col-md-4">
-                            <i class="fas fa-user-shield fa-2x text-warning mb-2"></i>
-                            <h6>Controle de Acesso</h6>
-                            <small class="text-muted">Baseado em roles e permissões</small>
-                        </div>
-                    </div>
+                  
                 </div>
             </div>
         </div>
     </div>
 </div>
+</body>
+<th:block th:fragment="scripts">
+</th:block>
 </html>

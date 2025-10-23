@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout/main :: layout(~{::title}, ~{::content}, ~{::style}, ~{::scripts})}">
 <head>
     <title>Lista de Alertas - ServerWatch</title>
     <style>
@@ -17,6 +17,9 @@
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
         }
     </style>
+    <th:block th:fragment="style">
+        
+    </th:block>
 </head>
 <body>
 
@@ -378,5 +381,10 @@
         }
         /*]]>*/
     </script>
+
+</body>
+<th:block th:fragment="scripts">
+
+</th:block>
 
 </html>

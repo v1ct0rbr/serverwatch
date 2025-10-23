@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+>
 
 <!-- Navigation Fragment -->
 <nav th:fragment="navbar" class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -32,13 +34,12 @@
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                         <i class="fas fa-user-circle me-1"></i>
-                        <span th:if="${user != null && user.fullName != null}" th:text="${user.fullName}">Usuário</span>
-                        <span th:if="${user != null && user.fullName == null && user.username != null}" th:text="${user.username}">Usuário</span>
-                        <span th:unless="${user != null}">Usuário</span>
+                        <span sec:authentication="name">Usuário</span>                         
+                        
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li class="dropdown-header" th:if="${user}">
-                            <small class="text-muted" th:text="${user.email}">user@example.com</small>
+                            <small class="text-muted"  sec:authentication="email">user@example.com</small>
                         </li>
                         <li th:if="${user}"><hr class="dropdown-divider"></li>
                         
