@@ -10,13 +10,14 @@ let desktopNotifications = true;
 
 // Inicialização da página
 document.addEventListener('DOMContentLoaded', function () {
+    setInterval(updateStats, 30000);
     console.log('Inicializando página de monitoramento');
 
     loadServerInfo();
 
     document.getElementById('test_connection').addEventListener('click', function () {
         const serverIp = this.getAttribute('data-ip');
-        
+
         // Solicita permissão para notificações dentro do handler de evento do usuário
         if (desktopNotifications && 'Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission().then(permission => {
@@ -26,6 +27,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
         testConnectivity(serverIp);
     });
+    
+
+    setInterval(() => {
+        const serverId = document.getElementById('server_id').value;
+        refreshServer(serverId);
+    }, 30000);
+
 });
 
 // Carrega dados de monitoramento (usa cache se disponível)
@@ -37,14 +45,10 @@ async function loadServerInfo() {
         const [summaryResponse] = await Promise.all([
             fetch(`/api/monitoring/servers/${serverId}`),
         ]);
-
         const summary = await summaryResponse.json();
-
         updateServerConnectionStatus(summary.online);
-
-        // Atualiza timestamp
-        document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
-
+        console.log('Resumo:', summary);
+        displayServers(summary);
     } catch (error) {
         console.error('Erro ao carregar dados de monitoramento:', error);
         showError('Erro ao carregar dados de monitoramento');
@@ -71,25 +75,7 @@ function updateServerConnectionStatus(isConnected) {
             </span>
         `;
     }
-    /*  <div class="col-6">
-                               <div class="text-center">
-                                   <div class="text-success mb-2">
-                                       <i class="bi bi-wifi" style="font-size: 2rem;"></i>
-                                   </div>
-                                   <h6 class="mb-0">Conectividade</h6>
-                                   <span class="badge bg-success">Ativa</span>
-                               </div>
-                           </div>
-                           <div class="col-6">
-                               <div class="text-center">
-                                   <div class="text-primary mb-2">
-                                       <i class="bi bi-speedometer2" style="font-size: 2rem;"></i>
-                                   </div>
-                                   <h6 class="mb-0">Latência</h6>
-                                   <span class="text-muted">12ms</span>
-                               </div>
-                           </div>
-*/
+
 }
 
 async function testConnectivity(serverIp) {
@@ -102,8 +88,9 @@ async function testConnectivity(serverIp) {
         fetch(`/api/monitoring/test/${serverIp}`),
     ]);
     const result = await test;
-    if(result.ok){
-        showSuccess('Conectividade bem-sucedida!');
+    if (result.ok) {
+
+        showToast('Conectividade bem-sucedida!', 'success');
     } else {
         showError('Falha na conectividade com o servidor.');
     }
@@ -452,12 +439,256 @@ function getDiskProgressColor(usage) {
 }
 
 function showError(message) {
-    // Implementar sistema de notificações
-    console.error(message);
-    alert(message); // Temporário
+    // Implementar sistema de notificações    
+    showToast(message, 'error');
 }
 
 function showSuccess(message) {
-    console.log(message);
-    alert(message); // Temporário
+    showToast(message, 'success');
+}
+
+function confirmDelete() {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+}
+
+// Função para copiar texto para clipboard
+function copyToClipboard(element) {
+    const textToCopy = element.getAttribute('data-text');
+
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(textToCopy).then(function () {
+            showCopyFeedback(element);
+        });
+    } else {
+        // Fallback para navegadores mais antigos
+        const textArea = document.createElement('textarea');
+        textArea.value = textToCopy;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            document.execCommand('copy');
+            showCopyFeedback(element);
+        } catch (err) {
+            console.error('Erro ao copiar texto:', err);
+        }
+
+        document.body.removeChild(textArea);
+    }
+}
+
+function showCopyFeedback(element) {
+    const icon = element.querySelector('i');
+    const originalClass = icon.className;
+
+    icon.className = 'bi bi-check text-success';
+
+    setTimeout(() => {
+        icon.className = originalClass;
+    }, 2000);
+}
+
+// Atualizar dados em tempo real (simulação)
+function updateStats() {
+    // Aqui você pode implementar chamadas AJAX para atualizar os dados em tempo real
+    console.log('Atualizando estatísticas...');
+}
+
+function displayServers(server) {
+    const container = document.getElementById('servers-info-container');
+
+    if (!server) {
+        container.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-server fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhum servidor configurado</h5>
+                <p class="text-muted">Adicione servidores para começar o monitoramento.</p>
+                <a href="/servers/new" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i> Adicionar Servidor
+                </a>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = createServerCard(server);
+}
+
+function createServerCard(server) {
+    const statusClass = server.status.toLowerCase();
+    const statusIcon = getStatusIcon(server.status);
+    const statusText = getStatusText(server.status);
+
+    return `
+        <div class="col-sm-12 mb-4">
+            <div class="card server-card ${statusClass}" data-server-id="${server.serverId}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-server me-2"></i>Status do sistema
+                        </h5>
+                    </div>
+                   
+                </div>
+                
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small class="text-muted">Status</small><br>
+                            <span class="badge bg-${getStatusBadgeColor(server.status)}">${statusText}</span>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">IP Address</small><br>
+                            <code>${server.ipAddress}</code>
+                        </div>
+                    </div>
+                    
+                    ${server.online ? createMetricsSection(server) : createOfflineSection(server)}
+                </div>
+                
+                <div class="card-footer">
+                    <small class="text-muted">
+                        <i class="far fa-clock me-1"></i>
+                        ${server.lastCheck ? formatDateTime(server.lastCheck) : 'Nunca verificado'}
+                    </small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createMetricsSection(server) {
+    // Debug: Log dos dados do servidor
+    console.log('Criando métricas para servidor:', server.serverName);
+    console.log('CPU Load:', server.cpuLoad1Min);
+    console.log('Memory Total:', server.memoryTotal, 'Used:', server.memoryUsed, 'Usage%:', server.memoryUsagePercent);
+    console.log('Disk Total:', server.diskTotal, 'Used:', server.diskUsed, 'Usage%:', server.diskUsagePercent);
+    console.log('Interface Count:', server.interfaceCount);
+
+    return `
+        <div class="metrics-section">
+            ${server.uptime ? `
+            <div class="metric-row mb-2">
+                <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>Uptime
+                </small><br>
+                <span class="badge bg-info">${server.uptime}</span>
+            </div>
+            ` : ''}
+            
+            <!-- CPU Metrics -->
+            <div class="metric-row mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-microchip me-1"></i>CPU Load
+                    </small>
+                    <span class="metric-badge badge ${getCpuBadgeColor(server.cpuLoad1Min || 0)}">
+                        ${server.cpuLoad1Min !== null ? server.cpuLoad1Min.toFixed(1) : 'N/A'}%
+                    </span>
+                </div>
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar ${getCpuProgressColor(server.cpuLoad1Min || 0)}" 
+                         style="width: ${server.cpuLoad1Min ? Math.min(server.cpuLoad1Min, 100) : 0}%"></div>
+                </div>
+            </div>
+            
+            <!-- Memory Metrics -->
+            <div class="metric-row mb-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="fas fa-memory me-1"></i>Memória RAM
+                    </small>
+                    <span class="metric-badge badge ${getMemoryBadgeColor(server.memoryUsagePercent || 0)}">
+                        ${server.memoryUsagePercent ? server.memoryUsagePercent.toFixed(1) : 'N/A'}%
+                    </span>
+                </div>
+                ${server.memoryTotal && server.memoryUsed ? `
+                <div class="metric-details">
+                    <small class="text-muted">
+                        ${formatBytes(server.memoryUsed * 1024 * 1024)} / ${formatBytes(server.memoryTotal * 1024 * 1024)}
+                        ${server.memoryAvailable ? ` (${formatBytes(server.memoryAvailable * 1024 * 1024)} livre)` : ''}
+                    </small>
+                </div>
+                ` : `
+                <div class="metric-details">
+                    <small class="text-muted">Dados de memória não disponíveis</small>
+                </div>
+                `}
+                <div class="progress mt-1" style="height: 6px;">
+                    <div class="progress-bar ${getMemoryProgressColor(server.memoryUsagePercent || 0)}" 
+                         style="width: ${server.memoryUsagePercent || 0}%"></div>
+                </div>
+            </div>
+            
+            <!-- Multiple Disks -->
+            ${createDisksSection(server)}
+        </div>
+    `;
+}
+
+// Cria seção para servidores offline
+function createOfflineSection(server) {
+    return `
+        <div class="text-center py-3">
+            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+            <div class="text-muted">Servidor indisponível</div>
+            ${server.errorMessage ? `<small class="text-danger">${server.errorMessage}</small>` : ''}
+        </div>
+    `;
+}
+
+// Funções auxiliares para cores e ícones
+function getStatusIcon(status) {
+    const icons = {
+        'ONLINE': 'fas fa-check-circle text-success',
+        'OFFLINE': 'fas fa-times-circle text-danger',
+        'WARNING': 'fas fa-exclamation-triangle text-warning',
+        'UNKNOWN': 'fas fa-question-circle text-secondary'
+    };
+    return icons[status] || icons['UNKNOWN'];
+}
+
+function getStatusText(status) {
+    const texts = {
+        'ONLINE': 'Online',
+        'OFFLINE': 'Offline',
+        'WARNING': 'Alerta',
+        'UNKNOWN': 'Desconhecido',
+        'PENDING': 'Carregando...'
+    };
+    return texts[status] || 'Desconhecido';
+}
+
+function getStatusBadgeColor(status) {
+    const colors = {
+        'ONLINE': 'success',
+        'OFFLINE': 'danger',
+        'WARNING': 'warning',
+        'UNKNOWN': 'secondary',
+        'PENDING': 'info'
+    };
+    return colors[status] || 'secondary';
+}
+
+function getCpuBadgeColor(cpuLoad) {
+    if (cpuLoad > 80) return 'bg-danger';
+    if (cpuLoad > 60) return 'bg-warning';
+    return 'bg-success';
+}
+
+function getMemoryBadgeColor(memUsage) {
+    if (memUsage > 85) return 'bg-danger';
+    if (memUsage > 70) return 'bg-warning';
+    return 'bg-success';
+}
+
+function getDiskBadgeColor(diskUsage) {
+    if (diskUsage > 90) return 'bg-danger';
+    if (diskUsage > 75) return 'bg-warning';
+    return 'bg-success';
 }

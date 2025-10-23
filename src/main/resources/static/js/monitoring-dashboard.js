@@ -404,19 +404,7 @@ function saveSettings() {
 }
 
 // Utilitários
-function formatDateTime(dateTimeStr) {
-    return new Date(dateTimeStr).toLocaleString('pt-BR');
-}
 
-function formatBytes(bytes) {
-    if (bytes === 0) return '0 Bytes';
-
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
 
 // Funções para cores dos progress bars
 function getCpuProgressColor(usage) {
@@ -539,10 +527,10 @@ function getDiskProgressColor(usage) {
 function showError(message) {
     // Implementar sistema de notificações
     console.error(message);
-    alert(message); // Temporário
+    showToast(message, 'error');
 }
 
 function showSuccess(message) {
     console.log(message);
-    alert(message); // Temporário
+    showToast(message, 'success');
 }

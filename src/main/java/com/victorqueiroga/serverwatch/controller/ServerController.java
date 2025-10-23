@@ -1,8 +1,5 @@
 package com.victorqueiroga.serverwatch.controller;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,9 +25,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.victorqueiroga.serverwatch.model.OperationSystem;
 import com.victorqueiroga.serverwatch.model.Server;
-import com.victorqueiroga.serverwatch.service.ServerMonitoringService;
 import com.victorqueiroga.serverwatch.service.ServerService;
-import com.victorqueiroga.serverwatch.utils.SnmpHelper;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

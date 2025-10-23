@@ -4,15 +4,40 @@
  */
 
 // Inicialização quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('ServerWatch iniciado!');
-    
+
     // Inicializar componentes
     initializeComponents();
-    
+
     // Auto-refresh dos dados (opcional)
     // setupAutoRefresh();
 });
+
+function showToast(message, type = 'info') {
+    Toastify({
+        text: message,
+        className: type,
+        duration: 3000,
+        close: true,
+        gravity: "right",
+    }).showToast();
+}
+
+function formatDateTime(dateTimeStr) {
+    return new Date(dateTimeStr).toLocaleString('pt-BR');
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 
 /**
  * Inicializa componentes da interface
@@ -23,16 +48,16 @@ function initializeComponents() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
-    
+
     // Inicializar popovers do Bootstrap
     var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
     var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
         return new bootstrap.Popover(popoverTriggerEl);
     });
-    
+
     // Adicionar animações aos cards
     addCardAnimations();
-    
+
     // Configurar navegação ativa
     highlightActiveNavigation();
 }
@@ -55,7 +80,7 @@ function addCardAnimations() {
 function highlightActiveNavigation() {
     const currentPath = window.location.pathname;
     const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
-    
+
     navLinks.forEach(link => {
         const href = link.getAttribute('href');
         if (href && currentPath.includes(href) && href !== '/') {
@@ -81,7 +106,7 @@ function setupAutoRefresh(interval = 30000) {
  */
 function refreshDashboardData() {
     console.log('Atualizando dados do dashboard...');
-    
+
     // Aqui você pode fazer chamadas AJAX para atualizar os dados
     // Exemplo usando fetch API:
     /*
@@ -107,19 +132,19 @@ function updateDashboardCards(data) {
     const onlineServers = document.querySelector('[data-metric="online-servers"]');
     const offlineServers = document.querySelector('[data-metric="offline-servers"]');
     const alerts = document.querySelector('[data-metric="alerts"]');
-    
+
     if (totalServers && data.totalServers !== undefined) {
         totalServers.textContent = data.totalServers;
     }
-    
+
     if (onlineServers && data.onlineServers !== undefined) {
         onlineServers.textContent = data.onlineServers;
     }
-    
+
     if (offlineServers && data.offlineServers !== undefined) {
         offlineServers.textContent = data.offlineServers;
     }
-    
+
     if (alerts && data.alerts !== undefined) {
         alerts.textContent = data.alerts;
     }
@@ -141,10 +166,10 @@ function showNotification(message, type = 'info') {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     // Adicionar ao body
     document.body.appendChild(notification);
-    
+
     // Remover automaticamente após 5 segundos
     setTimeout(() => {
         if (notification.parentNode) {
@@ -187,7 +212,7 @@ function formatDateTime(date) {
 function validateForm(form) {
     const requiredFields = form.querySelectorAll('[required]');
     let isValid = true;
-    
+
     requiredFields.forEach(field => {
         if (!field.value.trim()) {
             field.classList.add('is-invalid');
@@ -197,7 +222,7 @@ function validateForm(form) {
             field.classList.add('is-valid');
         }
     });
-    
+
     return isValid;
 }
 
@@ -221,7 +246,7 @@ const ServerWatch = {
      * @param {string} url - URL para requisição
      * @returns {Promise} - Promise com resposta
      */
-    get: function(url) {
+    get: function (url) {
         return fetch(url, {
             method: 'GET',
             headers: {
@@ -234,14 +259,14 @@ const ServerWatch = {
             return response.json();
         });
     },
-    
+
     /**
      * Faz requisição POST
      * @param {string} url - URL para requisição
      * @param {Object} data - Dados para enviar
      * @returns {Promise} - Promise com resposta
      */
-    post: function(url, data) {
+    post: function (url, data) {
         return fetch(url, {
             method: 'POST',
             headers: {
