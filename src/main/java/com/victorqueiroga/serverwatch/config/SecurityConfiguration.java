@@ -110,7 +110,7 @@ public class SecurityConfiguration {
                     "/api/test/**").permitAll()
                 
                 // Recursos que requerem autenticação
-                .requestMatchers("/dashboard", "/servers/**", "/monitoring/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/dashboard", "/servers/**", "/monitoring/**", "/settings/**").hasAnyRole("USER", "ADMIN")
                 
                 // APIs REST que requerem autenticação
                 .requestMatchers("/api/monitoring/**", "/api/servers/**").hasAnyRole("USER", "ADMIN")

@@ -1,5 +1,8 @@
 package com.victorqueiroga.serverwatch.controller.api;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.victorqueiroga.serverwatch.dto.ServerStatusDto;
@@ -287,6 +291,23 @@ public class MonitoringApiController {
                 summary.getOfflineServers(), summary.getWarningServers());
 
         return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/ping")
+    public ResponseEntity<Boolean> pingServer(@RequestParam String ipAddress) {
+        //teste de rede simples
+        try {
+            InetAddress address = InetAddress.getByName(ipAddress);
+            log.debug("API: Pinging server: {}", address.getHostName());
+            try {
+                return ResponseEntity.ok(address.isReachable(2000));
+            } catch (IOException e) {
+                return ResponseEntity.internalServerError().body(false);
+            }
+        } catch (UnknownHostException e) {
+            log.error("API: Erro ao pingar servidor: {}", e.getMessage(), e);
+        }
+        return ResponseEntity.internalServerError().body(false);
     }
 
     /**

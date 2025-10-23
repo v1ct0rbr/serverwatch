@@ -1,10 +1,11 @@
 package com.victorqueiroga.serverwatch.controller;
 
-import com.victorqueiroga.serverwatch.model.Server;
-import com.victorqueiroga.serverwatch.model.OperationSystem;
-import com.victorqueiroga.serverwatch.service.ServerService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -13,12 +14,27 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.victorqueiroga.serverwatch.model.OperationSystem;
+import com.victorqueiroga.serverwatch.model.Server;
+import com.victorqueiroga.serverwatch.service.ServerMonitoringService;
+import com.victorqueiroga.serverwatch.service.ServerService;
+import com.victorqueiroga.serverwatch.utils.SnmpHelper;
+
 import jakarta.validation.Valid;
-import java.util.List;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Controller para gerenciamento de servidores monitorados
@@ -42,16 +58,16 @@ public class ServerController {
             @RequestParam(defaultValue = "asc") String direction,
             @RequestParam(required = false) String search,
             Model model) {
-        
-        log.debug("Listando servidores - página: {}, tamanho: {}, ordenação: {} {}", 
-                 page, size, sort, direction);
 
-        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) 
-            ? Sort.Direction.DESC 
-            : Sort.Direction.ASC;
-        
+        log.debug("Listando servidores - página: {}, tamanho: {}, ordenação: {} {}",
+                page, size, sort, direction);
+
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction)
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
-        
+
         Page<Server> servers;
         if (search != null && !search.trim().isEmpty()) {
             // Se há busca, usar filtro (sem paginação por simplicidade)
@@ -78,11 +94,11 @@ public class ServerController {
     @GetMapping("/new")
     public String newServer(Model model) {
         log.debug("Exibindo formulário para novo servidor");
-        
+
         model.addAttribute("server", new Server());
         model.addAttribute("operationSystems", serverService.findAllOperationSystems());
         model.addAttribute("pageTitle", "Novo Servidor");
-        
+
         return "pages/servers/form";
     }
 
@@ -92,7 +108,7 @@ public class ServerController {
     @GetMapping("/{id}")
     public String viewServer(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Visualizando servidor com ID: {}", id);
-        
+
         Optional<Server> serverOpt = serverService.findById(id);
         if (serverOpt.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Servidor não encontrado!");
@@ -109,7 +125,7 @@ public class ServerController {
     @GetMapping("/{id}/edit")
     public String editServer(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         log.debug("Editando servidor com ID: {}", id);
-        
+
         Optional<Server> serverOpt = serverService.findById(id);
         if (serverOpt.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Servidor não encontrado!");
@@ -119,7 +135,7 @@ public class ServerController {
         model.addAttribute("server", serverOpt.get());
         model.addAttribute("operationSystems", serverService.findAllOperationSystems());
         model.addAttribute("pageTitle", "Editar Servidor");
-        
+
         return "pages/servers/form";
     }
 
@@ -127,11 +143,11 @@ public class ServerController {
      * Salva servidor (criar ou atualizar)
      */
     @PostMapping
-    public String saveServer(@Valid @ModelAttribute Server server, 
-                           BindingResult bindingResult,
-                           Model model, 
-                           RedirectAttributes redirectAttributes) {
-        
+    public String saveServer(@Valid @ModelAttribute Server server,
+            BindingResult bindingResult,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+
         log.debug("Salvando servidor: {}", server.getName());
 
         if (bindingResult.hasErrors()) {
@@ -143,13 +159,13 @@ public class ServerController {
 
         try {
             Server savedServer = serverService.save(server);
-            String message = server.getId() == null 
-                ? "Servidor criado com sucesso!" 
-                : "Servidor atualizado com sucesso!";
-            
+            String message = server.getId() == null
+                    ? "Servidor criado com sucesso!"
+                    : "Servidor atualizado com sucesso!";
+
             redirectAttributes.addFlashAttribute("success", message);
             return "redirect:/servers/" + savedServer.getId();
-            
+
         } catch (Exception e) {
             log.error("Erro ao salvar servidor: {}", e.getMessage(), e);
             model.addAttribute("error", e.getMessage());
@@ -165,7 +181,7 @@ public class ServerController {
     @PostMapping("/{id}/delete")
     public String deleteServer(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         log.debug("Deletando servidor com ID: {}", id);
-        
+
         try {
             Optional<Server> server = serverService.findById(id);
             if (server.isEmpty()) {
@@ -174,20 +190,19 @@ public class ServerController {
             }
 
             serverService.deleteById(id);
-            redirectAttributes.addFlashAttribute("success", 
-                "Servidor '" + server.get().getName() + "' foi deletado com sucesso!");
-            
+            redirectAttributes.addFlashAttribute("success",
+                    "Servidor '" + server.get().getName() + "' foi deletado com sucesso!");
+
         } catch (Exception e) {
             log.error("Erro ao deletar servidor: {}", e.getMessage(), e);
-            redirectAttributes.addFlashAttribute("error", 
-                "Erro ao deletar servidor: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("error",
+                    "Erro ao deletar servidor: " + e.getMessage());
         }
-        
+
         return "redirect:/servers";
     }
 
     // ==================== API REST Endpoints ====================
-
     /**
      * API: Lista todos os servidores
      */
@@ -206,10 +221,10 @@ public class ServerController {
     @ResponseBody
     public ResponseEntity<Server> getServerByIdApi(@PathVariable Long id) {
         log.debug("API: Buscando servidor por ID: {}", id);
-        
+
         Optional<Server> server = serverService.findById(id);
         return server.map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -219,7 +234,7 @@ public class ServerController {
     @ResponseBody
     public ResponseEntity<Server> createServerApi(@Valid @RequestBody Server server) {
         log.debug("API: Criando novo servidor: {}", server.getName());
-        
+
         try {
             Server savedServer = serverService.save(server);
             return ResponseEntity.ok(savedServer);
@@ -236,11 +251,11 @@ public class ServerController {
     @ResponseBody
     public ResponseEntity<Server> updateServerApi(@PathVariable Long id, @Valid @RequestBody Server server) {
         log.debug("API: Atualizando servidor ID: {}", id);
-        
+
         if (!serverService.findById(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
-        
+
         try {
             server.setId(id);
             Server updatedServer = serverService.save(server);
@@ -258,11 +273,11 @@ public class ServerController {
     @ResponseBody
     public ResponseEntity<Void> deleteServerApi(@PathVariable Long id) {
         log.debug("API: Deletando servidor ID: {}", id);
-        
+
         if (!serverService.findById(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
-        
+
         try {
             serverService.deleteById(id);
             return ResponseEntity.noContent().build();
@@ -281,10 +296,10 @@ public class ServerController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String ipAddress,
             @RequestParam(required = false) Long operationSystemId) {
-        
-        log.debug("API: Buscando servidores com filtros - name: {}, ip: {}, osId: {}", 
-                 name, ipAddress, operationSystemId);
-        
+
+        log.debug("API: Buscando servidores com filtros - name: {}, ip: {}, osId: {}",
+                name, ipAddress, operationSystemId);
+
         List<Server> servers = serverService.findByNameContaining(name != null ? name : "");
         return ResponseEntity.ok(servers);
     }
@@ -299,4 +314,5 @@ public class ServerController {
         List<OperationSystem> operationSystems = serverService.findAllOperationSystems();
         return ResponseEntity.ok(operationSystems);
     }
+
 }

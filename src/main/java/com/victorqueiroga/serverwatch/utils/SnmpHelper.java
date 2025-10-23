@@ -348,8 +348,7 @@ public class SnmpHelper {
 
                         // Validação: 0..100
                         if (load >= 0 && load <= 100) {
-                            totalLoad += load;
-                            validCount++;
+                          return load;
                         }
                     } catch (NumberFormatException ignored) {
                     }

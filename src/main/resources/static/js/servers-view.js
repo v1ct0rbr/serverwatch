@@ -101,7 +101,12 @@ async function testConnectivity(serverIp) {
     const [test] = await Promise.all([
         fetch(`/api/monitoring/test/${serverIp}`),
     ]);
-    const result = await test.json();
+    const result = await test;
+    if(result.ok){
+        showSuccess('Conectividade bem-sucedida!');
+    } else {
+        showError('Falha na conectividade com o servidor.');
+    }
     document.getElementById('test_connection').disabled = false;
     document.getElementById('test_connection').innerHTML = `
         <i class="bi bi-arrow-clockwise me-1"></i>Testar Conectividade

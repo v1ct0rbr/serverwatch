@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 
 import com.victorqueiroga.serverwatch.dto.ServerStatusDto;
 import com.victorqueiroga.serverwatch.model.Server;
@@ -39,8 +41,11 @@ public class ServerMonitoringService {
     private final Executor snmpExecutor = Executors.newFixedThreadPool(10);
 
     // Configurações SNMP padrão
-    private static final String DEFAULT_COMMUNITY = "public";
+    public static final String DEFAULT_COMMUNITY = "public";
     private static final int SNMP_TIMEOUT = 5000; // 5 segundos
+
+    @Autowired
+    private CacheService cacheService;
 
     /**
      * Limpa o cache forçando nova coleta SNMP na próxima consulta
@@ -56,6 +61,7 @@ public class ServerMonitoringService {
     public List<ServerStatusDto> forceRefreshAllServers() {
         log.info("FORÇANDO refresh completo - limpando cache e coletando SNMP");
         clearCache();
+        cacheService.evictAllCaches();
         return getAllServerStatus();
     }
 
@@ -63,6 +69,7 @@ public class ServerMonitoringService {
      * Obtém a lista de todos os servidores com dados atuais FORÇA coleta via
      * SNMP para garantir dados reais (não usa cache antigo)
      */
+    @Cacheable("serverStatuses")
     public List<ServerStatusDto> getAllServerStatus() {
         log.info("FORÇANDO coleta SNMP para todos os servidores (dados reais)");
 
@@ -288,6 +295,11 @@ public class ServerMonitoringService {
                 });
     }
 
+    @Scheduled(fixedRate = 120000) // 2 minutos
+    public void cleanUpCache() {
+        serverStatusCache.clear();
+    }
+
     /**
      * Coleta métricas SNMP de um servidor
      */
@@ -382,7 +394,7 @@ public class ServerMonitoringService {
         log.debug("=== Coletando métricas de CPU (método inteligente por SO) ===");
 
         try {
-            String cpuValue = snmp.getCpuLoad1Min();
+            String cpuValue = snmp.getCpuUsagePercent().toString();
             if (cpuValue != null && !cpuValue.trim().isEmpty()) {
                 Double cpuLoad = parseDoubleValue(cpuValue);
                 if (cpuLoad != null) {

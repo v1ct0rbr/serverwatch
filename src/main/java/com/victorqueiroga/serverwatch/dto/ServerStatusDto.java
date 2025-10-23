@@ -53,9 +53,11 @@ public class ServerStatusDto {
     
     
     // Lista de discos (novo)
+    @Builder.Default
     private List<DiskInfoDto> diskList = new ArrayList<>();
 
-    private String criticalDiskLetters;
+    @Builder.Default
+    private String criticalDiskLetters = "";
     
     // Tempos
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
