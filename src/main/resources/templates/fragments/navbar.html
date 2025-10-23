@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
+
 >
 
 <!-- Navigation Fragment -->
@@ -34,12 +34,12 @@ xmlns:sec="https://www.thymeleaf.org/thymeleaf-extras-springsecurity5"
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
                         <i class="fas fa-user-circle me-1"></i>
-                        <span sec:authentication="name">Usuário</span>                         
+                        <span th:text="${user.email}">Usuário</span>                         
                         
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li class="dropdown-header" th:if="${user}">
-                            <small class="text-muted"  sec:authentication="email">user@example.com</small>
+                            <small class="text-muted" th:if="${user}" th:text="${user.email}"></small>
                         </li>
                         <li th:if="${user}"><hr class="dropdown-divider"></li>
                         
