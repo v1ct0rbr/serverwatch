@@ -1,6 +1,7 @@
 package com.victorqueiroga.serverwatch.controller;
 
-import org.springframework.beans.factory.annotation.Value;
+import java.util.stream.Collectors;
+
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -10,13 +11,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.victorqueiroga.serverwatch.model.User;
 import com.victorqueiroga.serverwatch.security.KeycloakUser;
-import com.victorqueiroga.serverwatch.security.KeycloakUserService;
 import com.victorqueiroga.serverwatch.service.UserService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import java.util.stream.Collectors;
 
 /**
  * Controller responsável por gerenciar autenticação e autorização
@@ -27,15 +26,6 @@ import java.util.stream.Collectors;
 @Profile("!dev") // Exclui do profile dev
 public class AuthController extends AbstractController {
 
-    @Value("${keycloak.auth-server-url}")
-    private String keycloakServerUrl;
-
-    @Value("${keycloak.realm}")
-    private String realm;
-
-    @Value("${keycloak.resource}")
-    private String clientId;
-
     /**
      * Página de login
      */
@@ -43,7 +33,7 @@ public class AuthController extends AbstractController {
     public String loginPage(@RequestParam(value = "error", required = false) String error,
             @RequestParam(value = "logout", required = false) String logout,
             Authentication authentication,
-            Model model) {
+            Model model, HttpServletRequest request) {
 
         log.info("Acesso à página de login - Authentication: {}, Error: {}, Logout: {}",
                 authentication != null ? authentication.getClass().getSimpleName() : "null", error, logout);
@@ -66,10 +56,11 @@ public class AuthController extends AbstractController {
         if (logout != null) {
             model.addAttribute("message", "Logout realizado com sucesso.");
         }
-
-        // URL de login do Keycloak
-        String keycloakLoginUrl = "/oauth2/authorization/keycloak";
-        model.addAttribute("keycloakLoginUrl", keycloakLoginUrl);
+        
+        // Spring Security OAuth2 vai redirecionar automaticamente para o Keycloak
+        // quando acessar /oauth2/authorization/keycloak
+        // Você pode usar um link simples para isso no template
+        model.addAttribute("keycloakLoginUrl", "/oauth2/authorization/keycloak");
 
         return "pages/login";
     }
@@ -238,15 +229,9 @@ public class AuthController extends AbstractController {
         log.info("Iniciando logout do Keycloak para usuário: {}",
                 authentication != null ? authentication.getName() : "Anônimo");
 
-        // URL de logout do Keycloak com parâmetros para finalizar sessão SSO
-        String baseUrl = getBaseUrl(request);
-        String keycloakLogoutUrl = keycloakServerUrl + "/realms/" + realm +
-                "/protocol/openid-connect/logout" +
-                "?post_logout_redirect_uri=" + baseUrl + "/login?logout=true" +
-                "&client_id=" + clientId;
-
-        log.info("Redirecionando para logout do Keycloak: {}", keycloakLogoutUrl);
-        return "redirect:" + keycloakLogoutUrl;
+        // Spring Security irá processar o logout através do /logout endpoint
+        // com os handlers configurados
+        return "redirect:/logout";
     }
 
     /**
@@ -290,14 +275,5 @@ public class AuthController extends AbstractController {
             log.error("Erro ao carregar perfil do usuário", e);
             return "redirect:/login?error=true";
         }
-    }
-
-    /**
-     * Obtém a URL base da aplicação
-     */
-    private String getBaseUrl(HttpServletRequest request) {
-        return request.getScheme() + "://" + request.getServerName() +
-                (request.getServerPort() != 80 && request.getServerPort() != 443 ? ":" + request.getServerPort() : "")
-                + request.getContextPath();
     }
 }

@@ -110,21 +110,19 @@
         <div class="text-center mb-4">
             <p class="text-muted mb-3">Faça login com sua conta institucional</p>
             
-            <a th:href="@{${keycloakLoginUrl}}" class="btn keycloak-btn w-100">
+            <a th:href="${keycloakLoginUrl}" class="btn keycloak-btn w-100">
                 <i class="fas fa-sign-in-alt me-2"></i>
                 Entrar com Keycloak
             </a>
         </div>
-
-        
-
-        <!-- Rodapé -->
+                <!-- Rodapé -->
         <div class="text-center mt-4 pt-3" style="border-top: 1px solid #e9ecef;">
             <small class="text-muted">
                 &copy; 2025 ServerWatch v1.0.0<br>
                 Desenvolvido por Victor Queiroga - DERPB
             </small>
         </div>
+
     </div>
 
     <!-- Bootstrap JS -->

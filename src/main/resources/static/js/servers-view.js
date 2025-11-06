@@ -34,6 +34,25 @@ document.addEventListener('DOMContentLoaded', function () {
         refreshServer(serverId);
     }, 30000);
 
+    // Event listener para collapse do card e dos discos
+    // Atualiza aria-expanded quando o collapse é aberto
+    document.addEventListener('shown.bs.collapse', function (e) {
+        const btn = document.querySelector(`[data-bs-target="#${e.target.id}"]`);
+        if (btn) {
+            btn.setAttribute('aria-expanded', 'true');
+            console.log('Collapse aberto:', e.target.id);
+        }
+    });
+
+    // Atualiza aria-expanded quando o collapse é fechado
+    document.addEventListener('hidden.bs.collapse', function (e) {
+        const btn = document.querySelector(`[data-bs-target="#${e.target.id}"]`);
+        if (btn) {
+            btn.setAttribute('aria-expanded', 'false');
+            console.log('Collapse fechado:', e.target.id);
+        }
+    });
+
 });
 
 // Carrega dados de monitoramento (usa cache se disponível)
@@ -517,6 +536,26 @@ function displayServers(server) {
     }
 
     container.innerHTML = createServerCard(server);
+    
+    // Reinicializar collapses após atualizar o HTML
+    initializeCollapses();
+}
+
+// Função para inicializar collapses
+function initializeCollapses() {
+    // Obter todos os elementos collapse
+    const collapseElements = document.querySelectorAll('[data-bs-toggle="collapse"]');
+    collapseElements.forEach(element => {
+        // Garantir que cada collapse está vinculado ao Bootstrap
+        const target = element.getAttribute('data-bs-target');
+        if (target) {
+            const collapseTarget = document.querySelector(target);
+            if (collapseTarget) {
+                // Inicializar ou reinicializar o collapse do Bootstrap
+                new bootstrap.Collapse(collapseTarget, { toggle: false });
+            }
+        }
+    });
 }
 
 function createServerCard(server) {
@@ -528,34 +567,38 @@ function createServerCard(server) {
         <div class="col-sm-12 mb-4">
             <div class="card server-card ${statusClass}" data-server-id="${server.serverId}">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
+                    <button class="btn btn-link text-start text-dark text-decoration-none flex-grow-1 p-0" 
+                            type="button" data-bs-toggle="collapse" 
+                            data-bs-target="#server-body-${server.serverId}" 
+                            aria-expanded="true" aria-controls="server-body-${server.serverId}">
                         <h5 class="card-title mb-0">
                             <i class="bi bi-server me-2"></i>Status do sistema
+                            <i class="bi bi-chevron-down ms-2" style="font-size: 0.8rem; transition: transform 0.2s;"></i>
                         </h5>
-                    </div>
-                   
+                    </button>
                 </div>
                 
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <small class="text-muted">Status</small><br>
-                            <span class="badge bg-${getStatusBadgeColor(server.status)}">${statusText}</span>
+                <div class="collapse show" id="server-body-${server.serverId}">
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <small class="text-muted">Status</small><br>
+                                <span class="badge bg-${getStatusBadgeColor(server.status)}">${statusText}</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">IP Address</small><br>
+                                <code>${server.ipAddress}</code>
+                            </div>
                         </div>
-                        <div class="col-6">
-                            <small class="text-muted">IP Address</small><br>
-                            <code>${server.ipAddress}</code>
-                        </div>
+                        
+                        ${server.online ? createMetricsSection(server) : createOfflineSection(server)}
                     </div>
-                    
-                    ${server.online ? createMetricsSection(server) : createOfflineSection(server)}
-                </div>
-                
-                <div class="card-footer">
-                    <small class="text-muted">
-                        <i class="far fa-clock me-1"></i>
-                        ${server.lastCheck ? formatDateTime(server.lastCheck) : 'Nunca verificado'}
-                    </small>
+                    <div class="card-footer">
+                        <small class="text-muted">
+                            <i class="far fa-clock me-1"></i>
+                            ${server.lastCheck ? formatDateTime(server.lastCheck) : 'Nunca verificado'}
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>

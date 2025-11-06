@@ -784,6 +784,93 @@ public class SnmpHelper {
     }
 
     /**
+     * Diagnóstico detalhado para coleta de discos
+     * Ajuda a identificar qual MIB está disponível no servidor SNMP
+     */
+    public void diagnosticDiskCollection() {
+        System.out.println("\n╔════════════════════════════════════════════════════════════════╗");
+        System.out.println("║              DIAGNÓSTICO DE COLETA DE DISCOS                      ║");
+        System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
+
+        try {
+            String sysDescr = getSystemDescription();
+            System.out.println("🖥️  Sistema: " + sysDescr);
+            
+            boolean isWin = isWindowsSystem();
+            System.out.println("🔍 Tipo detectado: " + (isWin ? "WINDOWS" : "LINUX/UNIX"));
+        } catch (Exception e) {
+            System.out.println("❌ Erro ao detectar sistema: " + e.getMessage());
+        }
+
+        System.out.println("\n--- TESTE 1: UCD-MIB (Net-SNMP) ---");
+        System.out.println("Testando OID: 1.3.6.1.4.1.2021.9.1.2 (disk paths)");
+        int ucdDisksFound = 0;
+        for (int i = 1; i <= 5; i++) {
+            try {
+                String path = getAsString(OID_DISK_PATH + "." + i);
+                if (path != null && !path.contains("noSuch")) {
+                    System.out.println("  ✅ Índice " + i + ": " + path);
+                    ucdDisksFound++;
+                }
+            } catch (Exception e) {
+                // Silent
+            }
+        }
+        if (ucdDisksFound == 0) {
+            System.out.println("  ❌ Nenhum disco encontrado via UCD-MIB");
+        } else {
+            System.out.println("  ✅ UCD-MIB funcional! (" + ucdDisksFound + " discos)");
+        }
+
+        System.out.println("\n--- TESTE 2: Host Resources MIB Storage ---");
+        System.out.println("Testando OID: 1.3.6.1.2.1.25.2.3.1.3 (storage descriptions)");
+        int hrStorageFound = 0;
+        int hrFilesystemsFound = 0;
+        for (int i = 1; i <= 100; i++) {
+            try {
+                String type = getAsString(OID_HR_STORAGE_TYPE + "." + i);
+                String desc = getAsString(OID_HR_STORAGE_DESCR + "." + i);
+                
+                if (type != null && !type.contains("noSuch") && desc != null) {
+                    System.out.println("  📊 Índice " + i + ": " + desc + " (tipo: " + type + ")");
+                    hrStorageFound++;
+                    
+                    if (desc.startsWith("/") || type.endsWith(".4")) {
+                        hrFilesystemsFound++;
+                    }
+                }
+            } catch (Exception e) {
+                // Silent
+            }
+        }
+        if (hrStorageFound == 0) {
+            System.out.println("  ❌ Host Resources MIB não disponível");
+        } else {
+            System.out.println("  ✅ Host Resources MIB disponível!");
+            System.out.println("     ↳ " + hrStorageFound + " storage entries");
+            System.out.println("     ↳ " + hrFilesystemsFound + " parecem ser filesystems");
+        }
+
+        System.out.println("\n--- RECOMENDAÇÕES ---");
+        if (ucdDisksFound == 0 && hrFilesystemsFound == 0) {
+            System.out.println("⚠️  NENHUMA fonte de dados de disco encontrada!");
+            System.out.println("    Você precisa:");
+            System.out.println("    1. Instalar Net-SNMP com suporte completo MIB");
+            System.out.println("    2. Configurar /etc/snmp/snmpd.conf com:");
+            System.out.println("       - rocommunity public");
+            System.out.println("       - disk / 10000");
+            System.out.println("    3. Reiniciar: sudo systemctl restart snmpd");
+        } else if (ucdDisksFound > 0) {
+            System.out.println("✅ UCD-MIB está funcionando. Discos devem ser coletados normalmente.");
+        } else if (hrFilesystemsFound > 0) {
+            System.out.println("✅ Host Resources MIB com filesystems está disponível.");
+            System.out.println("   Usaremos este como fallback se UCD-MIB falhar.");
+        }
+
+        System.out.println("\n╚════════════════════════════════════════════════════════════════╝\n");
+    }
+
+    /**
      * Coleta informações de todos os discos disponíveis
      *
      * @return Lista de DiskInfoDto com todos os discos encontrados
@@ -793,22 +880,29 @@ public class SnmpHelper {
 
         try {
             boolean isWindows = isWindowsSystem();
+            System.out.println("🖥️  Sistema detectado: " + (isWindows ? "WINDOWS" : "LINUX/UNIX"));
 
             if (isWindows) {
                 // Windows: usa Host Resources MIB para enumerar todos os discos
+                System.out.println("📀 Coletando discos via Host Resources MIB (Windows)...");
                 diskList = collectWindowsDisks();
             } else {
                 // Linux: usa Net-SNMP para enumerar discos
+                System.out.println("📀 Coletando discos via UCD-MIB (Linux)...");
                 diskList = collectLinuxDisks();
             }
+
+            System.out.println("📊 Total de discos encontrados: " + diskList.size());
 
             // Calcula percentuais para todos os discos
             for (com.victorqueiroga.serverwatch.dto.DiskInfoDto disk : diskList) {
                 disk.calculateUsagePercent();
+                System.out.println("   - " + disk.getPath() + ": " + disk.getUsagePercent() + "% utilizado");
             }
 
         } catch (Exception e) {
             System.err.println("❌ Erro ao coletar lista de discos: " + e.getMessage());
+            e.printStackTrace();
         }
 
         return diskList;
@@ -891,10 +985,15 @@ public class SnmpHelper {
         java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
 
         try {
+            System.out.println("🔍 Coletando discos Linux via SNMP...");
+            
             // Net-SNMP enumera discos nos índices 1, 2, 3...
-            for (int i = 1; i <= 10; i++) {
+            // Aumentar para 20 para contemplar mais discos
+            for (int i = 1; i <= 20; i++) {
                 try {
                     String path = getAsString(OID_DISK_PATH + "." + i);
+                    
+                    // Se path é nulo ou contém erro SNMP, pula
                     if (path == null || path.contains("noSuch") || path.trim().isEmpty()) {
                         continue;
                     }
@@ -903,29 +1002,156 @@ public class SnmpHelper {
                     String used = getAsString(OID_DISK_USED + "." + i);
                     String avail = getAsString(OID_DISK_AVAIL + "." + i);
 
+                    System.out.println("📊 Disco encontrado [índice " + i + "]: " + path);
+                    System.out.println("   Total: " + total + " KB, Usado: " + used + " KB, Disponível: " + avail + " KB");
+
                     if (total != null && !total.contains("noSuch")
                             && used != null && !used.contains("noSuch")
                             && avail != null && !avail.contains("noSuch")) {
 
-                        long totalKB = Long.parseLong(total.trim());
-                        long usedKB = Long.parseLong(used.trim());
-                        long availKB = Long.parseLong(avail.trim());
+                        try {
+                            long totalKB = Long.parseLong(total.trim());
+                            long usedKB = Long.parseLong(used.trim());
+                            long availKB = Long.parseLong(avail.trim());
 
-                        // Converte para GB
-                        long totalGB = totalKB / (1024 * 1024);
-                        long usedGB = usedKB / (1024 * 1024);
-                        long availableGB = availKB / (1024 * 1024);
+                            // Converte para GB
+                            long totalGB = totalKB / (1024 * 1024);
+                            long usedGB = usedKB / (1024 * 1024);
+                            long availableGB = availKB / (1024 * 1024);
 
-                        if (totalGB > 0) {
-                            com.victorqueiroga.serverwatch.dto.DiskInfoDto disk = new com.victorqueiroga.serverwatch.dto.DiskInfoDto();
-                            disk.setPath(path);
-                            disk.setDescription(path + " filesystem");
-                            disk.setTotalGB(totalGB);
-                            disk.setUsedGB(usedGB);
-                            disk.setAvailableGB(availableGB);
-                            disk.setType("Linux Filesystem");
+                            // Adicionar disco mesmo se totalGB == 0 (para discos pequenos)
+                            if (totalKB > 0) {
+                                com.victorqueiroga.serverwatch.dto.DiskInfoDto disk = new com.victorqueiroga.serverwatch.dto.DiskInfoDto();
+                                disk.setPath(path);
+                                disk.setDescription(path + " filesystem");
+                                disk.setTotalGB(totalGB);
+                                disk.setUsedGB(usedGB);
+                                disk.setAvailableGB(availableGB);
+                                disk.setType("Linux Filesystem");
+                                disk.calculateUsagePercent();
 
-                            diskList.add(disk);
+                                diskList.add(disk);
+                                System.out.println("   ✅ Disco adicionado: " + totalGB + " GB total, " + usedGB + " GB usado");
+                            }
+                        } catch (NumberFormatException nfe) {
+                            System.out.println("   ⚠️ Erro ao parsear números para disco em índice " + i + ": " + nfe.getMessage());
+                        }
+                    }
+
+                } catch (Exception e) {
+                    // Ignora erros de índices individuais silenciosamente
+                }
+            }
+
+            System.out.println("📈 Total de discos coletados (UCD-MIB): " + diskList.size());
+
+            // Se não encontrou discos com UCD-MIB, tenta Host Resources MIB (fallback)
+            if (diskList.isEmpty()) {
+                System.out.println("⚠️  UCD-MIB não retornou discos. Tentando Host Resources MIB (fallback)...");
+                diskList = collectLinuxDisksViaHostResources();
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao coletar discos Linux: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return diskList;
+    }
+
+    /**
+     * Coleta discos do Linux usando Host Resources MIB (fallback quando UCD-MIB não funciona)
+     */
+    private java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> collectLinuxDisksViaHostResources() {
+        java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
+
+        try {
+            System.out.println("🔍 Coletando discos Linux via Host Resources MIB...");
+            
+            int storageEntriesFound = 0;
+            int diskEntriesFound = 0;
+            
+            // Enumera índices de storage do Host Resources MIB
+            // Aumentado para 100 para contemplar índices maiores (some systems use indices > 50)
+            for (int i = 1; i <= 100; i++) {
+                try {
+                    // Verifica o tipo de storage
+                    String storageType = getAsString(OID_HR_STORAGE_TYPE + "." + i);
+                    if (storageType == null || storageType.contains("noSuch")) {
+                        continue;
+                    }
+
+                    storageEntriesFound++;
+
+                    // Pega descrição do storage
+                    String description = getAsString(OID_HR_STORAGE_DESCR + "." + i);
+                    if (description == null || description.trim().isEmpty()) {
+                        continue;
+                    }
+
+                    System.out.println("📊 Storage encontrado [índice " + i + "]: " + description + " (tipo: " + storageType + ")");
+
+                    // Filtra por tipos comuns de disco em Linux
+                    // Tipo .4 = fixed disk (padrão em Linux também)
+                    // Alternativamente, filtra por descrição contendo / (mount points Linux)
+                    // Também pula tipos de memória (1.1 = other, 1.2 = RAM, 1.3 = virtual)
+                    String typeStr = storageType.trim();
+                    
+                    // Se é memória física (Physical memory, Virtual memory, etc), pula
+                    if (typeStr.endsWith(".1") || typeStr.endsWith(".2") || typeStr.endsWith(".3")) {
+                        System.out.println("   ⏭️  Pulando (é memória, não disco)");
+                        continue;
+                    }
+                    
+                    // Se não começa com "/" e não é disco fixo (.4), pula
+                    if (!description.startsWith("/") && !storageType.endsWith(".4")) {
+                        System.out.println("   ⏭️  Pulando (descrição não é mount point e tipo não é .4)");
+                        continue;
+                    }
+
+                    diskEntriesFound++;
+
+                    // Coleta métricas do disco
+                    String totalUnits = getAsString(OID_HR_STORAGE_SIZE + "." + i);
+                    String usedUnits = getAsString(OID_HR_STORAGE_USED + "." + i);
+                    String unitSize = getAsString(OID_HR_STORAGE_UNITS + "." + i);
+
+                    if (totalUnits != null && !totalUnits.contains("noSuch")
+                            && usedUnits != null && !usedUnits.contains("noSuch")
+                            && unitSize != null && !unitSize.contains("noSuch")) {
+
+                        try {
+                            long total = Long.parseLong(totalUnits.trim());
+                            long used = Long.parseLong(usedUnits.trim());
+                            long unit = Long.parseLong(unitSize.trim());
+
+                            // Converte para GB (total em unidades, cada unidade = unit bytes)
+                            long totalBytes = total * unit;
+                            long usedBytes = used * unit;
+                            long availableBytes = totalBytes - usedBytes;
+                            
+                            long totalGB = totalBytes / (1024 * 1024 * 1024);
+                            long usedGB = usedBytes / (1024 * 1024 * 1024);
+                            long availableGB = availableBytes / (1024 * 1024 * 1024);
+
+                            // Só adiciona se tiver tamanho válido (pelo menos 1 MB)
+                            if (totalBytes > (1024 * 1024)) {
+                                com.victorqueiroga.serverwatch.dto.DiskInfoDto disk = new com.victorqueiroga.serverwatch.dto.DiskInfoDto();
+                                disk.setPath(description);
+                                disk.setDescription(description + " filesystem");
+                                disk.setTotalGB(totalGB);
+                                disk.setUsedGB(usedGB);
+                                disk.setAvailableGB(availableGB);
+                                disk.setType("Linux Filesystem (HR-MIB)");
+                                disk.calculateUsagePercent();
+
+                                diskList.add(disk);
+                                System.out.println("   ✅ Disco adicionado: " + totalGB + " GB total, " + usedGB + " GB usado, " + availableGB + " GB disponível");
+                            } else {
+                                System.out.println("   ⏭️  Pulando (tamanho muito pequeno: " + totalBytes + " bytes)");
+                            }
+                        } catch (NumberFormatException nfe) {
+                            System.out.println("   ⚠️ Erro ao parsear números: " + nfe.getMessage());
                         }
                     }
 
@@ -934,8 +1160,19 @@ public class SnmpHelper {
                 }
             }
 
+            System.out.println("📈 Total de entries de storage encontradas: " + storageEntriesFound);
+            System.out.println("📈 Total de entries candidatas a disco: " + diskEntriesFound);
+            System.out.println("📈 Total de discos coletados (Host Resources MIB): " + diskList.size());
+            
+            // Se ainda não encontrou discos, log diagnóstico
+            if (diskList.isEmpty() && storageEntriesFound > 0) {
+                System.out.println("⚠️  DIAGNÓSTICO: Host Resources MIB encontrou " + storageEntriesFound 
+                    + " storage entries, mas nenhuma corresponde a disco. "
+                    + "O SNMP agent deste servidor pode não ter filesystem info configurada.");
+            }
+
         } catch (Exception e) {
-            System.err.println("❌ Erro ao coletar discos Linux: " + e.getMessage());
+            System.err.println("❌ Erro ao coletar discos Linux via Host Resources: " + e.getMessage());
         }
 
         return diskList;

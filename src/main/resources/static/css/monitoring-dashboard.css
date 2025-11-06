@@ -48,6 +48,46 @@
 
 .status-online { background-color: #28a745; }
 .status-offline { background-color: #dc3545; }
+
+/* Estilos para o botão collapsível do card */
+.card-header .btn-link {
+    display: block;
+    text-align: left;
+}
+
+.card-header .btn-link:focus {
+    box-shadow: none;
+}
+
+.card-header .btn-link .bi-chevron-down {
+    display: inline-block;
+    transform: rotate(0deg);
+    transition: transform 0.3s ease;
+}
+
+.card-header .btn-link[aria-expanded="false"] .bi-chevron-down {
+    transform: rotate(-90deg);
+}
+
+.btn-outline-secondary[data-bs-toggle="collapse"] {
+    transition: all 0.3s ease;
+}
+
+.btn-outline-secondary[data-bs-toggle="collapse"] .bi-chevron-down,
+.btn-outline-secondary[data-bs-toggle="collapse"] .fas.fa-chevron-down {
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.btn-outline-secondary[data-bs-toggle="collapse"][aria-expanded="false"] .bi-chevron-down,
+.btn-outline-secondary[data-bs-toggle="collapse"][aria-expanded="false"] .fas.fa-chevron-down {
+    transform: rotate(-90deg);
+}
+
+.btn-outline-secondary[data-bs-toggle="collapse"][aria-expanded="true"] .bi-chevron-down,
+.btn-outline-secondary[data-bs-toggle="collapse"][aria-expanded="true"] .fas.fa-chevron-down {
+    transform: rotate(0deg);
+}
 .status-warning { background-color: #ffc107; }
 .status-unknown { background-color: #6c757d; }
 
