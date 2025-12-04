@@ -1,0 +1,7 @@
+# Etapa base para desenvolvimento
+FROM flyway/flyway:latest
+
+COPY ./src/main/resources/db/migration /flyway/sql
+# Definindo o diretório de trabalho
+
+ENTRYPOINT ["flyway", "migrate"]

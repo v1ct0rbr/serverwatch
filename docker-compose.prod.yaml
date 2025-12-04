@@ -1,0 +1,84 @@
+services:
+
+  serverwatch-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: serverwatch-app
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
+      - SPRING_DATASOURCE_USERNAME=${DATABASE_USER}
+      - SPRING_DATASOURCE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST=localhost
+      - DATABASE_PORT=${DATABASE_PORT:5435}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - KEYCLOAK_AUTH_SERVER_URL=${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:DERPB}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:teste-cli}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - APP_BASE_URL=${APP_BASE_URL}
+      - SERVER_PORT=${SERVER_PORT:8080}
+      - JWT_ACCESS_TOKEN_VALIDITY=${JWT_ACCESS_TOKEN_VALIDITY:900}
+      - JWT_REFRESH_TOKEN_VALIDITY=${JWT_REFRESH_TOKEN_VALIDITY:86400}
+      - SESSION_TIMEOUT=${SESSION_TIMEOUT:1800}
+      - LOGGING_LEVEL_SECURITY=${LOGGING_LEVEL_SECURITY:INFO}
+      - LOGGING_LEVEL_KEYCLOAK=${LOGGING_LEVEL_KEYCLOAK:DEBUG}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:prod}
+# Habilitar logs de debug para OAuth2
+      - DEBUG_OAUTH2=${DEBUG_OAUTH2:false}
+# Habilitar SSL (para produção)
+      - ENABLE_SSL=${ENABLE_SSL:false}
+      - TZ=${TZ:America/Recife}
+      - MAIL_HOST=${MAIL_HOST:gerencia.webmail.pb.gov.br}
+      - MAIL_PORT=${MAIL_PORT:587}
+      - MAIL_USERNAME=${MAIL_USERNAME:teste@gmail.com}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:senha_teste}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:suportedti@der.pb.gov.br}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME:"Suporte DTI - ServerWatch"}
+      - MAIL_SMTP_AUTH=${MAIL_SMTP_AUTH:true}
+      - MAIL_SMTP_STARTTLS_ENABLE=${MAIL_SMTP_STARTTLS_ENABLE:true}
+      - MAIL_DEBUG=${MAIL_DEBUG:false}
+      - TZ=${TZ}
+    
+    depends_on:
+      - serverwatch-db
+    networks:
+      - serverwatch_network
+  serverwatch-db:
+    image: postgres:latest
+    container_name: serverwatch-db
+    environment:
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_INITDB_ARGS=--data-checksums
+      - TZ=${TZ}    
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - serverwatch_network
+
+  serverwatch-flyway:
+    image: flyway/flyway:latest
+    container_name: serverwatch_flyway    
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
+      - FLYWAY_USER=${DATABASE_USER}
+      - FLYWAY_PASSWORD=${DATABASE_PASSWORD}
+      - TZ=${TZ}
+      
+    depends_on:
+      - serverwatch-db
+    networks:
+      - serverwatch_network
+    volumes:
+      - ./src/main/resources/db/migration:/flyway/sql  
+    entrypoint: ["flyway", "migrate"]
+
+volumes:
+  db_data:
+networks:
+  serverwatch_network:
+    driver: bridge
