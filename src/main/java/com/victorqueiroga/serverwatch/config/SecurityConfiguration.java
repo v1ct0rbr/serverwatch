@@ -44,10 +44,6 @@ public class SecurityConfiguration {
     private final KeycloakLogoutSuccessHandler logoutSuccessHandler;
     private final CustomOidcUserService customOidcUserService;
 
-   
-    
-
-
     /**
      * Configuração do decoder JWT para Keycloak
      */
@@ -73,54 +69,55 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-            
-            // Configuração OAuth2 Login para Keycloak
-            .oauth2Login(oauth2 -> oauth2
-                .loginPage("/login")
-                .defaultSuccessUrl("/dashboard", true)
-                .failureUrl("/login?error=true")
-                .userInfoEndpoint(userInfo -> userInfo
-                    .oidcUserService(customOidcUserService)))
-            
-            // Configuração de logout com handlers customizados
-            .logout(logout -> logout
-                .logoutUrl("/logout")
-                .addLogoutHandler(customLogoutHandler)
-                .logoutSuccessHandler(logoutSuccessHandler)
-                .invalidateHttpSession(true)
-                .clearAuthentication(true)
-                .deleteCookies("JSESSIONID"))
-            
-            // Configuração de autorização de requisições
-            .authorizeHttpRequests(auth -> auth
-                // Recursos públicos
-                .requestMatchers(
-                    "/",
-                    "/login**",
-                    "/logout**",
-                    "/oauth2/**",
-                    "/public/**",
-                    "/css/**",
-                    "/js/**",
-                    "/images/**",
-                    "/lib/**",
-                    "/error/**",
-                    "/debug/**",
-                    "/favicon.ico",
-                    "/api/test/**").permitAll()
-                
-                // Recursos que requerem autenticação
-                .requestMatchers("/dashboard", "/servers/**", "/settings/**" ,"/api/servers/**").hasAnyRole("SERVERWATCH_USER")
-                .requestMatchers("/monitoring/**", "/api/monitoring/**").hasAnyRole("SERVERWATCH_MONITOR")                                // APIs REST que requerem autenticação
-                
-                
-                
-                // Qualquer outra requisição requer autenticação
-                .anyRequest().authenticated());
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+
+                // Configuração OAuth2 Login para Keycloak
+                .oauth2Login(oauth2 -> oauth2
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/dashboard", true)
+                        .failureUrl("/login?error=true")
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .oidcUserService(customOidcUserService)))
+
+                // Configuração de logout com handlers customizados
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .addLogoutHandler(customLogoutHandler)
+                        .logoutSuccessHandler(logoutSuccessHandler)
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .deleteCookies("JSESSIONID"))
+
+                // Configuração de autorização de requisições
+                .authorizeHttpRequests(auth -> auth
+                        // Recursos públicos
+                        .requestMatchers(
+                                "/",
+                                "/login**",
+                                "/logout**",
+                                "/oauth2/**",
+                                "/public/**",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/lib/**",
+                                "/error/**",
+                                "/debug/**",
+                                "/favicon.ico",
+                                "/api/test/**")
+                        .permitAll()
+
+                        // Recursos que requerem autenticação
+                        .requestMatchers("/servers/**", "/settings/**", "/api/servers/**")
+                        .hasAnyRole("SERVERWATCH_USER")
+                        .requestMatchers("/dashboard", "/monitoring/**", "/api/monitoring/**")
+                        .hasAnyRole("SERVERWATCH_MONITOR", "SERVERWATCH_USER") // APIs REST que requerem autenticação
+
+                        // Qualquer outra requisição requer autenticação
+                        .anyRequest().authenticated());
 
         return http.build();
     }
