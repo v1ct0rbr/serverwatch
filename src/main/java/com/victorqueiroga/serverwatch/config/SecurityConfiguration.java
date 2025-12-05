@@ -44,6 +44,10 @@ public class SecurityConfiguration {
     private final KeycloakLogoutSuccessHandler logoutSuccessHandler;
     private final CustomOidcUserService customOidcUserService;
 
+   
+    
+
+
     /**
      * Configuração do decoder JWT para Keycloak
      */
@@ -110,13 +114,10 @@ public class SecurityConfiguration {
                     "/api/test/**").permitAll()
                 
                 // Recursos que requerem autenticação
-                .requestMatchers("/dashboard", "/servers/**", "/monitoring/**", "/settings/**").hasAnyRole("USER", "ADMIN")
+                .requestMatchers("/dashboard", "/servers/**", "/settings/**" ,"/api/servers/**").hasAnyRole("SERVERWATCH_USER")
+                .requestMatchers("/monitoring/**", "/api/monitoring/**").hasAnyRole("SERVERWATCH_MONITOR")                                // APIs REST que requerem autenticação
                 
-                // APIs REST que requerem autenticação
-                .requestMatchers("/api/monitoring/**", "/api/servers/**").hasAnyRole("USER", "ADMIN")
                 
-                // Recursos administrativos
-                .requestMatchers("/admin/**", "/settings/**").hasRole("ADMIN")
                 
                 // Qualquer outra requisição requer autenticação
                 .anyRequest().authenticated());

@@ -6,13 +6,13 @@
 
 keycloak:
   # URL base do servidor Keycloak (sem /realms)
-  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}
+  auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.seu-dominio.com}
   
   # Nome do realm no Keycloak
-  realm: ${KEYCLOAK_REALM:DERPB}
+  realm: ${KEYCLOAK_REALM:seu_realm}
   
   # Client ID da aplicação
-  resource: ${KEYCLOAK_CLIENT_ID:derpb-cli}
+  resource: ${KEYCLOAK_CLIENT_ID:cliente}
   
   # Configurações do client administrativo
   admin:
