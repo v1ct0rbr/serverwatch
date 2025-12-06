@@ -28,8 +28,7 @@ services:
 # Habilitar logs de debug para OAuth2
       - DEBUG_OAUTH2=${DEBUG_OAUTH2}
 # Habilitar SSL (para produção)
-      - ENABLE_SSL=${ENABLE_SSL}
-      - TZ=${TZ}
+      - ENABLE_SSL=${ENABLE_SSL}      
       - MAIL_HOST=${MAIL_HOST}
       - MAIL_PORT=${MAIL_PORT}
       - MAIL_USERNAME=${MAIL_USERNAME}
