@@ -1,6 +1,7 @@
 services:
+
   serverwatch-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: serverwatch-db
     environment:
       - POSTGRES_USER=${DATABASE_USER}
@@ -16,8 +17,9 @@ services:
       - serverwatch_network
 
   serverwatch-flyway:
-    image: flyway/flyway:latest
-    container_name: serverwatch_flyway    
+    build:
+      context: .
+      dockerfile: Dockerfile.flyway    
     environment:
       - FLYWAY_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
       - FLYWAY_USER=${DATABASE_USER}

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.victorqueiroga.serverwatch.model.User;
 import com.victorqueiroga.serverwatch.repository.UserRepository;
+import com.victorqueiroga.serverwatch.security.AuthDebugService;
 import com.victorqueiroga.serverwatch.security.KeycloakUser;
 import com.victorqueiroga.serverwatch.security.KeycloakUserService;
 
@@ -25,18 +26,19 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Transactional
-@Profile("!dev")  // Exclui do profile dev
+@Profile("!dev") // Exclui do profile dev
 public class UserService {
 
     private final UserRepository userRepository;
     private final KeycloakUserService keycloakUserService;
+    private final AuthDebugService authDebugService;
 
     /**
      * Obtém ou cria um usuário local baseado no usuário do Keycloak
      */
     public User getOrCreateUser() {
         KeycloakUser keycloakUser = keycloakUserService.getCurrentUser();
-        
+
         if (keycloakUser == null) {
             throw new IllegalStateException("Usuário não está autenticado no Keycloak");
         }
@@ -48,16 +50,22 @@ public class UserService {
      * Obtém ou cria um usuário local baseado nos dados do Keycloak
      */
     public User getOrCreateUser(KeycloakUser keycloakUser) {
+        log.info("getOrCreateUser: Buscando usuário com Keycloak ID: {}", keycloakUser.getId());
+
         Optional<User> existingUser = userRepository.findByKeycloakId(keycloakUser.getId());
-        
+
         if (existingUser.isPresent()) {
             // Atualiza dados do usuário existente
             User user = existingUser.get();
+            log.info("Usuário existente encontrado: {}", user.getUsername());
             syncUserWithKeycloak(user, keycloakUser);
             user.registerLogin();
-            return userRepository.save(user);
+            User savedUser = userRepository.save(user);
+            log.info("Usuário atualizado e salvo com roles: {}", savedUser.getApplicationRoles());
+            return savedUser;
         } else {
             // Cria novo usuário
+            log.info("Usuário não encontrado, criando novo usuário: {}", keycloakUser.getUsername());
             return createUserFromKeycloak(keycloakUser);
         }
     }
@@ -67,19 +75,19 @@ public class UserService {
      */
     private User createUserFromKeycloak(KeycloakUser keycloakUser) {
         log.info("Criando novo usuário local para: {}", keycloakUser.getUsername());
-        
+
         User user = User.builder()
-            .keycloakId(keycloakUser.getId())
-            .username(keycloakUser.getUsername())
-            .email(keycloakUser.getEmail())
-            .fullName(keycloakUser.getFullName())
-            .firstLogin(LocalDateTime.now())
-            .lastLogin(LocalDateTime.now())
-            .active(true)
-            .theme(User.Theme.AUTO)
-            .language("pt-BR")
-            .timezone("America/Sao_Paulo")
-            .build();
+                .keycloakId(keycloakUser.getId())
+                .username(keycloakUser.getUsername())
+                .email(keycloakUser.getEmail())
+                .fullName(keycloakUser.getFullName())
+                .firstLogin(LocalDateTime.now())
+                .lastLogin(LocalDateTime.now())
+                .active(true)
+                .theme(User.Theme.AUTO)
+                .language("pt-BR")
+                .timezone("America/Sao_Paulo")
+                .build();
 
         // Mapear roles do Keycloak para roles da aplicação
         Set<User.ApplicationRole> appRoles = mapKeycloakRolesToApplicationRoles(keycloakUser);
@@ -92,29 +100,41 @@ public class UserService {
      * Sincroniza dados do usuário local com o Keycloak
      */
     private void syncUserWithKeycloak(User user, KeycloakUser keycloakUser) {
+        log.debug("Iniciando sincronização de usuário: {}", user.getUsername());
+
+        authDebugService.logKeycloakUserDetails(keycloakUser);
+
         boolean changed = false;
 
+        // Sincronizar dados básicos
         if (!keycloakUser.getUsername().equals(user.getUsername()) ||
-            !keycloakUser.getEmail().equals(user.getEmail()) ||
-            !keycloakUser.getFullName().equals(user.getFullName())) {
-            
+                !keycloakUser.getEmail().equals(user.getEmail()) ||
+                !keycloakUser.getFullName().equals(user.getFullName())) {
+
+            log.debug("Dados do usuário mudaram, atualizando...");
             user.syncWithKeycloak(
-                keycloakUser.getUsername(),
-                keycloakUser.getEmail(),
-                keycloakUser.getFullName()
-            );
+                    keycloakUser.getUsername(),
+                    keycloakUser.getEmail(),
+                    keycloakUser.getFullName());
             changed = true;
         }
 
-        // Atualizar roles se necessário
+        // Sincronizar roles
         Set<User.ApplicationRole> newRoles = mapKeycloakRolesToApplicationRoles(keycloakUser);
-        if (!newRoles.equals(user.getApplicationRoles())) {
+        Set<User.ApplicationRole> oldRoles = user.getApplicationRoles();
+
+        if (!newRoles.equals(oldRoles)) {
+            log.info("Roles mudaram para usuário {}: {} -> {}",
+                    user.getUsername(), oldRoles, newRoles);
             user.setApplicationRoles(newRoles);
             changed = true;
+        } else {
+            log.debug("Roles não mudaram para usuário {}", user.getUsername());
         }
 
         if (changed) {
-            log.debug("Sincronizando dados do usuário: {}", user.getUsername());
+            log.info("Usuário {} sincronizado com sucesso. Roles: {}",
+                    user.getUsername(), user.getApplicationRoles());
         }
     }
 
@@ -122,32 +142,59 @@ public class UserService {
      * Mapeia roles do Keycloak para roles da aplicação
      */
     private Set<User.ApplicationRole> mapKeycloakRolesToApplicationRoles(KeycloakUser keycloakUser) {
-        Set<User.ApplicationRole> appRoles = Set.of();
+        Set<User.ApplicationRole> appRoles = new java.util.HashSet<>();
+
+        // DEBUG: Log todas as authorities recebidas
+        log.info("=== ROLE MAPPING DEBUG ===");
+        log.info("Usuário: {}", keycloakUser.getUsername());
+        log.info("Total de authorities: {}", keycloakUser.getAuthorities().size());
+        keycloakUser.getAuthorities().forEach(auth -> log.info("  Authority: {}", auth.getAuthority()));
+
+        // Mapear roles do Keycloak para roles da aplicação
+        // Usando hasRole que verifica com "ROLE_" prefix
+
+        log.info("Verificando hasRole('ADMIN'): {}", keycloakUser.hasRole("ADMIN"));
+        log.info("Verificando hasRole('USER'): {}", keycloakUser.hasRole("USER"));
+        log.info("Verificando hasRole('SERVER_MANAGER'): {}", keycloakUser.hasRole("SERVER_MANAGER"));
+        log.info("Verificando hasRole('ALERT_MANAGER'): {}", keycloakUser.hasRole("ALERT_MANAGER"));
 
         if (keycloakUser.hasRole("ADMIN")) {
-            appRoles = Set.of(
-                User.ApplicationRole.SYSTEM_ADMIN,
-                User.ApplicationRole.SERVER_MANAGER,
-                User.ApplicationRole.ALERT_MANAGER,
-                User.ApplicationRole.REPORT_VIEWER,
-                User.ApplicationRole.MONITORING_VIEWER
-            );
-        } else if (keycloakUser.hasRole("USER")) {
-            appRoles = Set.of(
-                User.ApplicationRole.MONITORING_VIEWER,
-                User.ApplicationRole.REPORT_VIEWER
-            );
+            appRoles.add(User.ApplicationRole.SYSTEM_ADMIN);
+            appRoles.add(User.ApplicationRole.SERVER_MANAGER);
+            appRoles.add(User.ApplicationRole.ALERT_MANAGER);
+            appRoles.add(User.ApplicationRole.REPORT_VIEWER);
+            appRoles.add(User.ApplicationRole.MONITORING_VIEWER);
+            log.info("✓ Usuário {} tem role ADMIN, adicionadas todas as roles", keycloakUser.getUsername());
+        } else {
+            if (keycloakUser.hasRole("USER")) {
+                appRoles.add(User.ApplicationRole.MONITORING_VIEWER);
+                appRoles.add(User.ApplicationRole.REPORT_VIEWER);
+                log.info("✓ Usuário {} tem role USER", keycloakUser.getUsername());
+            }
+
+            // Roles específicas adicionais (podem ser combinadas)
+            if (keycloakUser.hasRole("SERVER_MANAGER")) {
+                appRoles.add(User.ApplicationRole.SERVER_MANAGER);
+                log.info("✓ Usuário {} tem role SERVER_MANAGER", keycloakUser.getUsername());
+            }
+
+            if (keycloakUser.hasRole("ALERT_MANAGER")) {
+                appRoles.add(User.ApplicationRole.ALERT_MANAGER);
+                log.info("✓ Usuário {} tem role ALERT_MANAGER", keycloakUser.getUsername());
+            }
         }
 
-        // Roles específicas adicionais
-        if (keycloakUser.hasRole("SERVER_MANAGER")) {
-            appRoles = Set.of(User.ApplicationRole.SERVER_MANAGER);
-        }
-        
-        if (keycloakUser.hasRole("ALERT_MANAGER")) {
-            appRoles = Set.of(User.ApplicationRole.ALERT_MANAGER);
+        if (appRoles.isEmpty()) {
+            log.warn("✗ Usuário {} não possui nenhuma role mapeada! Adicionando MONITORING_VIEWER como padrão.",
+                    keycloakUser.getUsername());
+            // Adicionar role padrão se nenhuma for encontrada
+            appRoles.add(User.ApplicationRole.MONITORING_VIEWER);
         }
 
+        log.info("Application Roles mapeadas: {}", appRoles);
+        log.info("=== FIM ROLE MAPPING DEBUG ===");
+
+        log.info("Roles mapeadas para usuário {}: {}", keycloakUser.getUsername(), appRoles);
         return appRoles;
     }
 
@@ -178,10 +225,10 @@ public class UserService {
     /**
      * Atualiza preferências do usuário
      */
-    public User updateUserPreferences(String keycloakId, String preferences, 
-                                     User.Theme theme, String language, String timezone) {
+    public User updateUserPreferences(String keycloakId, String preferences,
+            User.Theme theme, String language, String timezone) {
         User user = userRepository.findByKeycloakId(keycloakId)
-            .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
 
         user.setPreferences(preferences);
         user.setTheme(theme);
@@ -196,11 +243,11 @@ public class UserService {
      */
     public void deactivateUser(String keycloakId) {
         User user = userRepository.findByKeycloakId(keycloakId)
-            .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
-        
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+
         user.setActive(false);
         userRepository.save(user);
-        
+
         log.info("Usuário desativado: {}", user.getUsername());
     }
 
@@ -209,11 +256,11 @@ public class UserService {
      */
     public void activateUser(String keycloakId) {
         User user = userRepository.findByKeycloakId(keycloakId)
-            .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
-        
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+
         user.setActive(true);
         userRepository.save(user);
-        
+
         log.info("Usuário reativado: {}", user.getUsername());
     }
 
@@ -224,22 +271,21 @@ public class UserService {
     public UserStats getUserStats() {
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = startOfDay.plusDays(1);
-        
+
         return UserStats.builder()
-            .totalActiveUsers(userRepository.countByActiveTrue())
-            .newUsersToday(userRepository.countNewUsersToday(startOfDay, endOfDay))
-            .activeUsersLast24h(userRepository.countActiveUsersSince(LocalDateTime.now().minusDays(1)))
-            .build();
+                .totalActiveUsers(userRepository.countByActiveTrue())
+                .newUsersToday(userRepository.countNewUsersToday(startOfDay, endOfDay))
+                .activeUsersLast24h(userRepository.countActiveUsersSince(LocalDateTime.now().minusDays(1)))
+                .build();
     }
 
     /**
      * Classe para estatísticas de usuários
      */
     public record UserStats(
-        long totalActiveUsers,
-        long newUsersToday,
-        long activeUsersLast24h
-    ) {
+            long totalActiveUsers,
+            long newUsersToday,
+            long activeUsersLast24h) {
         public static UserStatsBuilder builder() {
             return new UserStatsBuilder();
         }

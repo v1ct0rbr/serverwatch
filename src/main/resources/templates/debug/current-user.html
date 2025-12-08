@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- favicon -->
+    <link rel="icon" type="image/x-icon" th:href="@{/img/favicon.ico}">
+    <title>Debug - Usuário Atual</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+            padding-left: 20px;
+        }
+        
+        .section h2 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        
+        .info-table tr {
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-table td {
+            padding: 12px 0;
+        }
+        
+        .info-table td:first-child {
+            font-weight: bold;
+            width: 30%;
+            color: #667eea;
+        }
+        
+        .info-table td:last-child {
+            color: #555;
+            word-break: break-all;
+        }
+        
+        .authority-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .authority-badge {
+            background: #e8f0f5;
+            border-left: 3px solid #667eea;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #667eea;
+        }
+        
+        .role-badge {
+            background: #f0f5e8;
+            border-left: 3px solid #67ea76;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #2d9c3e;
+        }
+        
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+        }
+        
+        .button-group {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .none-text {
+            color: #999;
+            font-style: italic;
+        }
+        
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Debug - Informações de Autenticação</h1>
+            <p>Verifique as informações do usuário autenticado e sincronização</p>
+        </div>
+        
+        <div class="content">
+            <!-- Keycloak User Section -->
+            <div class="section" th:if="${keycloakUser != null}">
+                <h2>👤 Usuário Keycloak</h2>
+                <div class="status success">
+                    ✓ Usuário autenticado com sucesso
+                </div>
+                
+                <table class="info-table">
+                    <tr>
+                        <td>ID (Subject)</td>
+                        <td th:text="${keycloakUser.id}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Username</td>
+                        <td th:text="${keycloakUser.username}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Email</td>
+                        <td th:text="${keycloakUser.email}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Nome Completo</td>
+                        <td th:text="${keycloakUser.fullName}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Email Verificado</td>
+                        <td th:text="${keycloakUser.emailVerified}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Habilitado</td>
+                        <td th:text="${keycloakUser.enabled}">-</td>
+                    </tr>
+                </table>
+                
+                <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 16px;">Authorities (do Token)</h3>
+                <div class="authority-list">
+                    <span th:each="auth : ${keycloakUser.authorities}" class="authority-badge" th:text="${auth.authority}">
+                        ROLE_EXAMPLE
+                    </span>
+                    <span th:if="${keycloakUser.authorities.isEmpty()}" class="none-text">Nenhuma authority encontrada</span>
+                </div>
+            </div>
+            
+            <!-- No Auth Section -->
+            <div class="section" th:if="${keycloakUser == null}">
+                <h2>⚠️ Autenticação</h2>
+                <div class="status error">
+                    ✗ Usuário não autenticado ou não é usuário OAuth2/OIDC
+                </div>
+            </div>
+            
+            <!-- Local User Section -->
+            <div class="section" th:if="${localUser != null}">
+                <h2>💾 Usuário Local (Banco de Dados)</h2>
+                <div class="status success">
+                    ✓ Usuário sincronizado no banco de dados
+                </div>
+                
+                <table class="info-table">
+                    <tr>
+                        <td>ID</td>
+                        <td th:text="${localUser.id}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Keycloak ID</td>
+                        <td th:text="${localUser.keycloakId}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Username</td>
+                        <td th:text="${localUser.username}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Email</td>
+                        <td th:text="${localUser.email}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Ativo</td>
+                        <td th:text="${localUser.active}">-</td>
+                    </tr>
+                    <tr>
+                        <td>Último Login</td>
+                        <td th:text="${#temporals.format(localUser.lastLogin, 'dd/MM/yyyy HH:mm:ss')}">-</td>
+                    </tr>
+                </table>
+                
+                <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 16px;">Roles da Aplicação</h3>
+                <div class="authority-list">
+                    <span th:each="role : ${localUser.applicationRoles}" class="role-badge" th:text="${role}">
+                        SYSTEM_ADMIN
+                    </span>
+                    <span th:if="${localUser.applicationRoles.isEmpty()}" class="none-text">Nenhuma role mapeada</span>
+                </div>
+            </div>
+            
+            <!-- Debug Links -->
+            <div class="section">
+                <h2>🔧 Ações de Debug</h2>
+                <p style="margin-bottom: 15px; color: #666;">
+                    Clique nos botões abaixo para gerar logs detalhados de autenticação:
+                </p>
+                <div class="button-group">
+                    <a href="/debug/auth-info" class="btn btn-primary">Ver Detalhes de Autenticação</a>
+                    <a href="/debug/user-sync" class="btn btn-primary">Sincronizar Usuário</a>
+                </div>
+            </div>
+            
+            <!-- Important Note -->
+            <div class="section">
+                <h2>⚡ Informações Importantes</h2>
+                <div class="status warning">
+                    <strong>Importante:</strong> Verifique os <strong>LOGS DA APLICAÇÃO</strong> (console ou arquivo) 
+                    para ver informações detalhadas sobre:
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>Roles extraídas do token Keycloak</li>
+                        <li>Mapeamento de roles para a aplicação</li>
+                        <li>Mensagens de sincronização de usuário</li>
+                        <li>Qualquer erro durante o processo de autenticação</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="button-group" style="margin-top: 40px; justify-content: center;">
+                <a href="/" class="btn btn-secondary">Voltar à Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

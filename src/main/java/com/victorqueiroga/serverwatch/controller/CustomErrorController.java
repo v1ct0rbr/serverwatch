@@ -3,7 +3,6 @@ package com.victorqueiroga.serverwatch.controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.servlet.error.ErrorController;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,67 +10,82 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 
+/**
+ * Controlador customizado para tratamento de erros HTTP.
+ * 
+ * O Spring Boot mapeia automaticamente TODOS os erros para /error
+ * Este controller processa a requisição e renderiza um template unificado
+ * com styling customizado baseado no código de status.
+ * 
+ * Não é necessário criar um arquivo separado para cada código de erro (400,
+ * 403, 404, etc).
+ * Um único template (error.html) é utilizado para todos, com cores e ícones
+ * específicos.
+ */
 @Controller
 public class CustomErrorController implements ErrorController {
 
     private static final Logger logger = LoggerFactory.getLogger(CustomErrorController.class);
 
+    /**
+     * Processa TODOS os erros HTTP.
+     * O Spring Boot automaticamente redireciona para este endpoint (/error)
+     * para qualquer erro não tratado.
+     */
     @RequestMapping("/error")
     public String handleError(HttpServletRequest request, Model model) {
         Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
         Object message = request.getAttribute(RequestDispatcher.ERROR_MESSAGE);
+        Object exception = request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
         Object uri = request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);
 
-        // Valores padrão caso os atributos sejam null
         int statusCode = (status != null) ? Integer.parseInt(status.toString()) : 500;
-        String errorMessage = (message != null) ? message.toString() : "Erro interno do servidor";
+        String errorMessage = (message != null) ? message.toString() : getDefaultMessage(statusCode);
         String requestUri = (uri != null) ? uri.toString() : "desconhecido";
+        java.time.LocalDateTime timestamp = java.time.LocalDateTime.now();
 
-        logger.error("Erro capturado: {} - {} - URI: {}", statusCode, errorMessage, requestUri);
+        logError(statusCode, errorMessage, requestUri, exception);
 
-        // Adicionar atributos ao modelo de forma segura
+        // Adiciona os atributos ao model para o template usar
         model.addAttribute("status", statusCode);
         model.addAttribute("message", errorMessage);
         model.addAttribute("uri", requestUri);
-        model.addAttribute("timestamp", java.time.LocalDateTime.now());
+        model.addAttribute("timestamp", timestamp);
 
-        // Criar objeto error para compatibilidade com o template
-        ErrorInfo errorInfo = new ErrorInfo(statusCode, errorMessage, requestUri);
-        model.addAttribute("error", errorInfo);
-
-        if (statusCode == HttpStatus.NOT_FOUND.value()) {
-            return "error/404";
-        } else if (statusCode == HttpStatus.FORBIDDEN.value()) {
-            return "error/403";
-        } else if (statusCode == HttpStatus.UNAUTHORIZED.value()) {
-            return "error/401";
-        }
-
-        return "error/general";
+        // Renderiza um único template para TODOS os erros
+        // O template (error.html) usa o status code para escolher cores, ícones e
+        // mensagens
+        return "error";
     }
 
-    // Classe interna para encapsular informações de erro
-    public static class ErrorInfo {
-        private final int status;
-        private final String message;
-        private final String path;
+    /**
+     * Retorna mensagens localizadas baseadas no código de status HTTP.
+     * Adicione mais cases conforme necessário.
+     */
+    private String getDefaultMessage(int statusCode) {
+        return switch (statusCode) {
+            case 400 -> "A requisição enviada é inválida ou mal formatada";
+            case 401 -> "Você precisa fazer login para acessar este recurso";
+            case 403 -> "Você não tem permissão para acessar este recurso";
+            case 404 -> "A página ou recurso solicitado não foi encontrado";
+            case 500 -> "Ocorreu um erro interno no servidor";
+            case 503 -> "O serviço está temporariamente indisponível";
+            default -> "Ocorreu um erro ao processar sua requisição";
+        };
+    }
 
-        public ErrorInfo(int status, String message, String path) {
-            this.status = status;
-            this.message = message;
-            this.path = path;
-        }
+    /**
+     * Loga o erro com o nível apropriado (ERROR para 5xx, WARN para 4xx)
+     */
+    private void logError(int statusCode, String message, String uri, Object exception) {
+        String exceptionInfo = exception != null ? " - " + ((Throwable) exception).getMessage() : "";
 
-        public int getStatus() {
-            return status;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public String getPath() {
-            return path;
+        if (statusCode >= 500) {
+            logger.error("Erro do servidor {}: {} - URI: {}{}",
+                    statusCode, message, uri, exceptionInfo);
+        } else {
+            logger.warn("Erro do cliente {}: {} - URI: {}{}",
+                    statusCode, message, uri, exceptionInfo);
         }
     }
 }

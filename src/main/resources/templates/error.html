@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="|Error ${status}|">Error</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .error-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .error-header {
+            padding: 40px 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .error-status {
+            font-size: 72px;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 15px;
+        }
+        
+        .error-title {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .error-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .error-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .error-content {
+            padding: 40px 30px;
+        }
+        
+        .error-message {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .error-details {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 13px;
+        }
+        
+        .detail-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .detail-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            color: #667eea;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 3px;
+        }
+        
+        .detail-value {
+            color: #666;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .error-footer {
+            padding: 30px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+            transform: translateY(-2px);
+        }
+        
+        /* Cores específicas por tipo de erro */
+        .error-400 .error-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .error-401 .error-header {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .error-403 .error-header {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        }
+        
+        .error-404 .error-header {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            color: #333;
+        }
+        
+        .error-500 .error-header {
+            background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);
+        }
+        
+        .error-503 .error-header {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #333;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #1565c0;
+        }
+        
+        .support-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .support-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .support-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div th:class="|error-container error-${status}|">
+        <!-- Header -->
+        <div class="error-header">
+            <span class="error-icon" th:switch="${status}">
+                <span th:case="400">❌</span>
+                <span th:case="401">🔐</span>
+                <span th:case="403">🔒</span>
+                <span th:case="404">🔍</span>
+                <span th:case="500">⚠️</span>
+                <span th:case="503">🚧</span>
+                <span th:default>❌</span>
+            </span>
+            
+            <div class="error-status" th:text="${status}">500</div>
+            
+            <h1 class="error-title" th:switch="${status}">
+                <span th:case="400">Requisição Inválida</span>
+                <span th:case="401">Não Autenticado</span>
+                <span th:case="403">Acesso Negado</span>
+                <span th:case="404">Página Não Encontrada</span>
+                <span th:case="500">Erro Interno do Servidor</span>
+                <span th:case="503">Serviço Indisponível</span>
+                <span th:default>Erro</span>
+            </h1>
+            
+            <p class="error-subtitle" th:switch="${status}">
+                <span th:case="400">Verifique os dados enviados</span>
+                <span th:case="401">Faça login para continuar</span>
+                <span th:case="403">Você não tem permissão</span>
+                <span th:case="404">O recurso solicitado não existe</span>
+                <span th:case="500">Algo deu errado em nosso servidor</span>
+                <span th:case="503">Estamos em manutenção</span>
+                <span th:default>Algo deu errado</span>
+            </p>
+        </div>
+        
+        <!-- Content -->
+        <div class="error-content">
+            <!-- Info Box -->
+            <div class="info-box" th:if="${status == 403}">
+                Se acredita que isso é um erro, contate o administrador do sistema.
+            </div>
+            
+            <div class="info-box" th:if="${status == 404}">
+                A página que você procura pode ter sido movida ou deletada.
+            </div>
+            
+            <div class="info-box" th:if="${status == 500}">
+                Nossos engenheiros foram notificados. Por favor, tente novamente mais tarde.
+            </div>
+            
+            <!-- Message -->
+            <p class="error-message" th:if="${message != null and message != 'Erro'}" th:text="${message}">
+                Ocorreu um erro ao processar sua requisição.
+            </p>
+            
+            <!-- Details -->
+            <div class="error-details">
+                <div class="detail-item" th:if="${timestamp != null}">
+                    <span class="detail-label">Timestamp</span>
+                    <span class="detail-value" th:text="${#temporals.format(timestamp, 'dd/MM/yyyy HH:mm:ss')}">
+                        2025-12-08 15:30:00
+                    </span>
+                </div>
+                
+                <div class="detail-item" th:if="${uri != null and uri != 'desconhecido'}">
+                    <span class="detail-label">URI</span>
+                    <span class="detail-value" th:text="${uri}">
+                        /api/users
+                    </span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="detail-label">Status Code</span>
+                    <span class="detail-value" th:text="${status}">500</span>
+                </div>
+            </div>
+            
+            <!-- Support Link -->
+            <div class="support-link">
+                Precisa de ajuda? <a href="mailto:support@der.pb.gov.br">Contate o suporte</a>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="error-footer">
+            <button class="btn btn-primary" onclick="window.location.href='/'">
+                ← Voltar à Home
+            </button>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                ← Voltar
+            </button>
+            <button class="btn btn-secondary" onclick="location.reload()">
+                🔄 Recarregar
+            </button>
+        </div>
+    </div>
+</body>
+</html>

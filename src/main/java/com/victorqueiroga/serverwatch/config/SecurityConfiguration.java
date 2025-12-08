@@ -110,11 +110,21 @@ public class SecurityConfiguration {
                                 "/api/test/**")
                         .permitAll()
 
-                        // Recursos que requerem autenticação
-                        .requestMatchers("/servers/**", "/settings/**", "/api/servers/**")
-                        .hasAnyRole("SERVERWATCH_USER")
-                        .requestMatchers("/dashboard", "/monitoring/**", "/api/monitoring/**")
-                        .hasAnyRole("SERVERWATCH_MONITOR", "SERVERWATCH_USER") // APIs REST que requerem autenticação
+                        // Recursos que requerem apenas autenticação (sem verificação de role)
+                        .requestMatchers("/servers/**", "/settings/**", "/api/servers/**",
+                                "/dashboard", "/monitoring/**", "/api/monitoring/**")
+                        .authenticated()
+
+                        // NOTA: Para implementar verificação de roles, descomente e configure abaixo:
+                        // Para habilitar novamente a verificação de roles, você deve:
+                        // 1. Ir ao Keycloak Admin Console
+                        // 2. Acesse Realm → Clients → seu-client
+                        // 3. Vá em Client Scopes → Assign scope → Adicione "roles"
+                        // 4. Configure as roles no Keycloak e atribua aos usuários
+                        // .requestMatchers("/servers/**", "/settings/**", "/api/servers/**")
+                        // .hasAnyRole("SERVERWATCH_USER")
+                        // .requestMatchers("/dashboard", "/monitoring/**", "/api/monitoring/**")
+                        // .hasAnyRole("SERVERWATCH_MONITOR", "SERVERWATCH_USER")
 
                         // Qualquer outra requisição requer autenticação
                         .anyRequest().authenticated());

@@ -17,6 +17,10 @@ spring:
     cache: false
     mode: HTML
     encoding: UTF-8
+  web:
+    resources:
+      add-mappings: true
+    
   
   security:
     oauth2:
@@ -88,3 +92,11 @@ logging:
     
 server:
   port: ${SERVER_PORT:8080}
+  error:
+    whitelabel:
+      enabled: false
+    path: /error
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: false

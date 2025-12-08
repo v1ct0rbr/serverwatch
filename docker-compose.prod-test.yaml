@@ -47,7 +47,7 @@ services:
     networks:
       - serverwatch_network
   serverwatch-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: serverwatch-db
     environment:
       - POSTGRES_USER=${DATABASE_USER}
