@@ -57,8 +57,15 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
     private Set<GrantedAuthority> extractAuthorities(OidcIdToken idToken) {
         Set<GrantedAuthority> authorities = new HashSet<>();
 
+        // DEBUG: Log todos os claims para ver o que tem
+        log.info("[TOKEN DEBUG] Todos os claims do token:");
+        idToken.getClaims().forEach((key, value) -> {
+            log.info("  {} = {}", key, value);
+        });
+
         // Extrair roles do realm_access
         Map<String, Object> realmAccess = idToken.getClaimAsMap("realm_access");
+        log.info("[TOKEN DEBUG] realm_access = {}", realmAccess);
         if (realmAccess != null && realmAccess.containsKey("roles")) {
             List<String> realmRoles = (List<String>) realmAccess.get("roles");
             authorities.addAll(realmRoles.stream()
@@ -70,10 +77,12 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
 
         // Extrair roles do resource_access (client-specific roles)
         Map<String, Object> resourceAccess = idToken.getClaimAsMap("resource_access");
+        log.info("[TOKEN DEBUG] resource_access = {}", resourceAccess);
         if (resourceAccess != null) {
             for (Map.Entry<String, Object> entry : resourceAccess.entrySet()) {
                 String clientId = entry.getKey();
                 Map<String, Object> resource = (Map<String, Object>) entry.getValue();
+                log.info("[TOKEN DEBUG] Client '{}' config = {}", clientId, resource);
 
                 if (resource != null && resource.containsKey("roles")) {
                     List<String> clientRoles = (List<String>) resource.get("roles");
