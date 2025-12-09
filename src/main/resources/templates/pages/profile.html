@@ -72,8 +72,24 @@ th:replace="~{layout/main :: layout(~{::title}, ~{::content}, ~{::style}, ~{::sc
                                 Roles e Permissões
                             </h6>
                             
+                            <!-- Mostrando Application Roles do banco de dados (sincronizadas do Keycloak) -->
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Roles Atribuídas:</label>
+                                <label class="form-label fw-bold">Roles da Aplicação (Sincronizadas):</label>
+                                <div th:if="${localUser != null and localUser.applicationRoles != null and !localUser.applicationRoles.empty}">
+                                    <span th:each="role : ${localUser.applicationRoles}" 
+                                          class="badge bg-success me-2 mb-2"
+                                          th:text="${role}">
+                                        SYSTEM_ADMIN
+                                    </span>
+                                </div>
+                                <div th:if="${localUser == null or localUser.applicationRoles == null or localUser.applicationRoles.empty}">
+                                    <p class="text-muted">Nenhuma role atribuída</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Mostrando Authorities brutos do Keycloak (para referência) -->
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Authorities do Keycloak (Raw):</label>
                                 <div th:if="${user.authorities != null and !user.authorities.empty}">
                                     <span th:each="authority : ${user.authorities}" 
                                           class="badge bg-info me-2 mb-2"
@@ -82,42 +98,17 @@ th:replace="~{layout/main :: layout(~{::title}, ~{::content}, ~{::style}, ~{::sc
                                     </span>
                                 </div>
                                 <div th:if="${user.authorities == null or user.authorities.empty}">
-                                    <p class="text-muted">Nenhuma role atribuída</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Verificações de Permissão -->
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Verificações de Acesso:</label>
-                                
-                                <div class="d-flex align-items-center mb-2">
-                                    <span th:if="${user.hasRole('ADMIN')}" class="badge bg-success me-2">
-                                        <i class="fas fa-check me-1"></i>Administrador
-                                    </span>
-                                    <span th:unless="${user.hasRole('ADMIN')}" class="badge bg-secondary me-2">
-                                        <i class="fas fa-times me-1"></i>Administrador
-                                    </span>
-                                </div>
-                                
-                                <div class="d-flex align-items-center mb-2">
-                                    <span th:if="${user.hasRole('USER')}" class="badge bg-success me-2">
-                                        <i class="fas fa-check me-1"></i>Usuário
-                                    </span>
-                                    <span th:unless="${user.hasRole('USER')}" class="badge bg-secondary me-2">
-                                        <i class="fas fa-times me-1"></i>Usuário
-                                    </span>
-                                </div>
-                                
-                                <div class="d-flex align-items-center mb-2">
-                                    <span th:if="${user.hasRole('EMAIL_VERIFIED')}" class="badge bg-success me-2">
-                                        <i class="fas fa-check me-1"></i>E-mail Verificado
-                                    </span>
-                                    <span th:unless="${user.hasRole('EMAIL_VERIFIED')}" class="badge bg-secondary me-2">
-                                        <i class="fas fa-times me-1"></i>E-mail Verificado
-                                    </span>
+                                    <p class="text-muted">Nenhuma authority encontrada</p>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- Nota importante sobre sincronização -->
+                    <div class="alert alert-info mt-4" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Informação:</strong> As roles de aplicação são sincronizadas automaticamente do Keycloak
+                        a cada login. O sistema sempre considera o Keycloak como fonte de verdade para permissões.
                     </div>
                     
                     <!-- Ações -->
