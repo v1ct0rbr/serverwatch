@@ -30,6 +30,10 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
 
     @Override
     public OidcUser loadUser(OidcUserRequest userRequest) throws OAuth2AuthenticationException {
+        log.info("════════════════════════════════════════════════════════════════");
+        log.info("[OIDC USER SERVICE] INICIANDO CARREGAMENTO DE USUÁRIO OIDC");
+        log.info("════════════════════════════════════════════════════════════════");
+
         // Carregar o usuário OIDC padrão
         OidcUser oidcUser = delegate.loadUser(userRequest);
 
@@ -40,12 +44,21 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
 
         // Extrair APENAS roles reais do ID Token (ignorar scopes padrão)
         OidcIdToken idToken = oidcUser.getIdToken();
+
+        // Log do token bruto
+        log.info("[OIDC TOKEN] Token Value (primeiros 100 chars): {}...",
+                idToken.getTokenValue().substring(0, Math.min(100, idToken.getTokenValue().length())));
+
         Set<GrantedAuthority> keycloakAuthorities = extractAuthorities(idToken);
 
         log.info("Usuário OIDC carregado: {}", oidcUser.getPreferredUsername());
         log.info("Authorities extraídas do Keycloak: {}", keycloakAuthorities.stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
+
+        log.info("════════════════════════════════════════════════════════════════");
+        log.info("[OIDC USER SERVICE] CONCLUSÃO DO CARREGAMENTO");
+        log.info("════════════════════════════════════════════════════════════════");
 
         // Retornar um novo OidcUser com APENAS as roles do Keycloak (sem scopes)
         return new CustomOidcUser(oidcUser, keycloakAuthorities);
@@ -58,31 +71,50 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
         Set<GrantedAuthority> authorities = new HashSet<>();
 
         // DEBUG: Log todos os claims para ver o que tem
-        log.info("[TOKEN DEBUG] Todos os claims do token:");
-        idToken.getClaims().forEach((key, value) -> {
-            log.info("  {} = {}", key, value);
+        log.info("═══════════════════════════════════════════════════════════════════");
+        log.info("[TOKEN CLAIMS DEBUG] TODOS OS CLAIMS DO TOKEN JWT:");
+        log.info("═══════════════════════════════════════════════════════════════════");
+
+        Map<String, Object> allClaims = idToken.getClaims();
+        log.info("Total de claims no token: {}", allClaims.size());
+
+        allClaims.forEach((key, value) -> {
+            String valueStr = String.valueOf(value);
+            // Se o valor for muito longo, trunca para 500 chars
+            if (valueStr.length() > 500) {
+                valueStr = valueStr.substring(0, 500) + "...";
+            }
+            log.info("  '{}' = {}", key, valueStr);
         });
+        log.info("═══════════════════════════════════════════════════════════════════");
 
         // Extrair roles do realm_access
         Map<String, Object> realmAccess = idToken.getClaimAsMap("realm_access");
-        log.info("[TOKEN DEBUG] realm_access = {}", realmAccess);
+        log.info("[TOKEN DEBUG] realm_access claim type: {} | value: {}",
+                realmAccess != null ? realmAccess.getClass().getSimpleName() : "NULL", realmAccess);
+
         if (realmAccess != null && realmAccess.containsKey("roles")) {
             List<String> realmRoles = (List<String>) realmAccess.get("roles");
             authorities.addAll(realmRoles.stream()
                     .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                     .collect(Collectors.toList()));
 
-            log.debug("Roles do realm encontradas: {}", realmRoles);
+            log.info("✓ Roles do realm encontradas: {}", realmRoles);
+        } else {
+            log.warn("✗ realm_access ou realm_access.roles NÃO ENCONTRADOS");
         }
 
         // Extrair roles do resource_access (client-specific roles)
         Map<String, Object> resourceAccess = idToken.getClaimAsMap("resource_access");
-        log.info("[TOKEN DEBUG] resource_access = {}", resourceAccess);
+        log.info("[TOKEN DEBUG] resource_access claim type: {} | value: {}",
+                resourceAccess != null ? resourceAccess.getClass().getSimpleName() : "NULL", resourceAccess);
+
         if (resourceAccess != null) {
+            log.info("[TOKEN DEBUG] Clientes em resource_access: {}", resourceAccess.keySet());
             for (Map.Entry<String, Object> entry : resourceAccess.entrySet()) {
                 String clientId = entry.getKey();
                 Map<String, Object> resource = (Map<String, Object>) entry.getValue();
-                log.info("[TOKEN DEBUG] Client '{}' config = {}", clientId, resource);
+                log.info("[TOKEN DEBUG] Roles do cliente '{}': {}", clientId, resource);
 
                 if (resource != null && resource.containsKey("roles")) {
                     List<String> clientRoles = (List<String>) resource.get("roles");
@@ -90,16 +122,46 @@ public class CustomOidcUserService implements OAuth2UserService<OidcUserRequest,
                             .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                             .collect(Collectors.toList()));
 
-                    log.debug("Roles do cliente {} encontradas: {}", clientId, clientRoles);
+                    log.info("✓ Roles do cliente {} encontradas: {}", clientId, clientRoles);
                 }
+            }
+        } else {
+            log.warn("✗ resource_access NÃO ENCONTRADO no token");
+        }
+
+        // Procurar por outras locations possíveis
+        log.info("[TOKEN DEBUG] Procurando alternativas de roles...");
+
+        // Verificar se há roles como claim simples
+        Object rolesClain = allClaims.get("roles");
+        if (rolesClain != null) {
+            log.info("✓ Encontrado claim 'roles' direto: {}", rolesClain);
+            if (rolesClain instanceof List) {
+                List<String> directRoles = (List<String>) rolesClain;
+                authorities.addAll(directRoles.stream()
+                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                        .collect(Collectors.toList()));
             }
         }
 
+        // Verificar grupos
+        Object groups = allClaims.get("groups");
+        if (groups != null) {
+            log.info("✓ Encontrado claim 'groups': {}", groups);
+        }
+
         if (authorities.isEmpty()) {
-            log.warn("Nenhuma role encontrada no token do Keycloak!");
-            log.warn("Adicione roles ao usuário no Keycloak Admin Console");
+            log.error("════════════════════════════════════════════════════════════════════");
+            log.error("✗✗✗ NENHUMA ROLE ENCONTRADA NO TOKEN DO KEYCLOAK! ✗✗✗");
+            log.error("════════════════════════════════════════════════════════════════════");
+            log.error("Possíveis soluções:");
+            log.error("  1. Adicione ROLES ao usuário no Keycloak Admin Console");
+            log.error("  2. Configure mappers para incluir realm_access.roles no token");
+            log.error("  3. Configure mappers para incluir resource_access.roles no token");
+            log.error("  4. Verifique se o client scope 'roles' está vinculado ao cliente");
+            log.error("════════════════════════════════════════════════════════════════════");
         } else {
-            log.info("Total de roles extraídas: {}", authorities.size());
+            log.info("[TOKEN DEBUG] ✓ Total de roles extraídas: {}", authorities.size());
         }
 
         return authorities;
