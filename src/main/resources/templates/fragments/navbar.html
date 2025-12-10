@@ -18,7 +18,7 @@
                         <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item" sec:authorize="hasRole('SERVERWATCH_USER')">
                     <a class="nav-link" th:href="@{/servers}"
                         th:classappend="${currentURI != null && #strings.contains(currentURI, '/servers') ? 'active' : ''}">
                         <i class="fas fa-server me-1"></i>Servidores

@@ -1,7 +1,6 @@
 package com.victorqueiroga.serverwatch.controller;
 
 import org.springframework.context.annotation.Profile;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 @Controller
 @RequestMapping("/monitoring")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('USER')")
 @Profile("!dev")  // Exclui do profile dev
 public class MonitoringController {
 

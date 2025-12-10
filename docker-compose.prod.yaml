@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: serverwatch-app
-    environment:      
+    environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
       - SPRING_DATASOURCE_USERNAME=${DATABASE_USER}
       - SPRING_DATASOURCE_PASSWORD=${DATABASE_PASSWORD}
@@ -38,29 +38,39 @@ services:
       - MAIL_SMTP_AUTH=${MAIL_SMTP_AUTH}
       - MAIL_SMTP_STARTTLS_ENABLE=${MAIL_SMTP_STARTTLS_ENABLE}
       - MAIL_DEBUG=${MAIL_DEBUG}
-      - TZ=${TZ}   
+      - TZ=${TZ}
+    
     
     depends_on:
-      - serverwatch-db
+      serverwatch-db:
+        condition: service_healthy
+        
     networks:
       - serverwatch_network
   serverwatch-db:
-    image: postgres:latest
+    image: postgres:17
     container_name: serverwatch-db
     environment:
       - POSTGRES_USER=${DATABASE_USER}
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
       - POSTGRES_DB=${DATABASE_NAME}
       - POSTGRES_INITDB_ARGS=--data-checksums
-      - TZ=${TZ}   
+      - TZ=${TZ}
+   
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
       - serverwatch_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DATABASE_NAME} -U ${DATABASE_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   serverwatch-flyway:
     build:
       context: .
-      dockerfile: Dockerfile.flyway    
+      dockerfile: Dockerfile.flyway
     environment:
       - FLYWAY_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
       - FLYWAY_USER=${DATABASE_USER}
@@ -68,7 +78,8 @@ services:
       - TZ=${TZ}
       
     depends_on:
-      - serverwatch-db
+      serverwatch-db:
+        condition: service_healthy
     networks:
       - serverwatch_network
     volumes:

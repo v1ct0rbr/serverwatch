@@ -43,7 +43,9 @@ services:
       - "8080:${SERVER_PORT}"
     
     depends_on:
-      - serverwatch-db
+      serverwatch-db:
+        condition: service_healthy
+        
     networks:
       - serverwatch_network
   serverwatch-db:
@@ -61,11 +63,16 @@ services:
       - db_data:/var/lib/postgresql/data
     networks:
       - serverwatch_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DATABASE_NAME} -U ${DATABASE_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   serverwatch-flyway:
     build:
       context: .
-      dockerfile: Dockerfile.flyway    
+      dockerfile: Dockerfile.flyway
     environment:
       - FLYWAY_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
       - FLYWAY_USER=${DATABASE_USER}
@@ -73,7 +80,8 @@ services:
       - TZ=${TZ}
       
     depends_on:
-      - serverwatch-db
+      serverwatch-db:
+        condition: service_healthy
     networks:
       - serverwatch_network
     volumes:
