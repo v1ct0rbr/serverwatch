@@ -45,15 +45,15 @@ public class SnmpHelper {
     public static final String OID_CPU_LOAD_15MIN = "1.3.6.1.4.1.2021.10.1.3.3";
 
     // CPU Detailed Stats - Net-SNMP (Linux)
-    public static final String OID_SS_CPU_RAW_USER = "1.3.6.1.4.1.2021.11.50.0";      // User CPU time
-    public static final String OID_SS_CPU_RAW_SYSTEM = "1.3.6.1.4.1.2021.11.52.0";    // System CPU time
-    public static final String OID_SS_CPU_RAW_IDLE = "1.3.6.1.4.1.2021.11.53.0";      // Idle CPU time
-    public static final String OID_SS_CPU_RAW_NICE = "1.3.6.1.4.1.2021.11.51.0";      // Nice CPU time
+    public static final String OID_SS_CPU_RAW_USER = "1.3.6.1.4.1.2021.11.50.0"; // User CPU time
+    public static final String OID_SS_CPU_RAW_SYSTEM = "1.3.6.1.4.1.2021.11.52.0"; // System CPU time
+    public static final String OID_SS_CPU_RAW_IDLE = "1.3.6.1.4.1.2021.11.53.0"; // Idle CPU time
+    public static final String OID_SS_CPU_RAW_NICE = "1.3.6.1.4.1.2021.11.51.0"; // Nice CPU time
 
     // CPU Percentage - Net-SNMP (Pre-calculated)
-    public static final String OID_SS_CPU_USER_PERCENT = "1.3.6.1.4.1.2021.11.9.0";   // User %
+    public static final String OID_SS_CPU_USER_PERCENT = "1.3.6.1.4.1.2021.11.9.0"; // User %
     public static final String OID_SS_CPU_SYSTEM_PERCENT = "1.3.6.1.4.1.2021.11.10.0"; // System %
-    public static final String OID_SS_CPU_IDLE_PERCENT = "1.3.6.1.4.1.2021.11.11.0";   // Idle %
+    public static final String OID_SS_CPU_IDLE_PERCENT = "1.3.6.1.4.1.2021.11.11.0"; // Idle %
 
     // Host Resources MIB - CPU (Multi-platform)
     public static final String OID_HR_PROCESSOR_LOAD = "1.3.6.1.2.1.25.3.3.1.2";
@@ -232,8 +232,6 @@ public class SnmpHelper {
     }
 
     public Double getCpuUsagePercent() throws Exception {
-        System.out.println("\n=== Iniciando coleta de CPU ===");
-
         try {
             if (isLinuxSystem()) {
                 return getLinuxCpuUsage();
@@ -241,15 +239,12 @@ public class SnmpHelper {
                 return getWindowsCpuUsage();
             }
         } catch (Exception e) {
-            System.err.println("❌ Erro na coleta principal de CPU: " + e.getMessage());
             // Tenta fallback genérico
             return getFallbackCpuUsage();
         }
     }
 
     private Double getLinuxCpuUsage() throws Exception {
-        System.out.println("📊 Detectado: Sistema Linux/Unix");
-
         // MÉTODO 1: Percentuais pré-calculados (mais preciso)
         try {
             String idlePercent = getAsString(OID_SS_CPU_IDLE_PERCENT);
@@ -259,12 +254,11 @@ public class SnmpHelper {
 
                 // Validação
                 if (usage >= 0 && usage <= 100) {
-                    System.out.println("✅ CPU (Net-SNMP Percentual): " + String.format("%.2f%%", usage));
                     return clampPercent(usage);
                 }
             }
         } catch (Exception e) {
-            System.out.println("⚠️  Net-SNMP Percentual não disponível: " + e.getMessage());
+            // Net-SNMP Percentual não disponível
         }
 
         // MÉTODO 2: Cálculo via User + System percentuais
@@ -279,12 +273,11 @@ public class SnmpHelper {
                 double usage = user + system;
 
                 if (usage >= 0 && usage <= 100) {
-                    System.out.println("✅ CPU (User+System): " + String.format("%.2f%%", usage));
                     return clampPercent(usage);
                 }
             }
         } catch (Exception e) {
-            System.out.println("⚠️  User+System não disponível: " + e.getMessage());
+            // User+System não disponível
         }
 
         // MÉTODO 3: Host Resources MIB (funciona em muitos Linux)
@@ -310,29 +303,24 @@ public class SnmpHelper {
 
                 if (validCount > 0) {
                     double avgLoad = totalLoad / validCount;
-                    System.out.println("✅ CPU (Host Resources): " + String.format("%.2f%%", avgLoad)
-                            + " (média de " + validCount + " cores)");
                     return clampPercent(avgLoad);
                 }
             }
         } catch (Exception e) {
-            System.out.println("⚠️  Host Resources MIB não disponível em Linux: " + e.getMessage());
+            // Host Resources MIB não disponível
         }
 
         // MÉTODO 4: Load Average convertido para porcentagem
         try {
             return getLoadAverageAsPercent();
         } catch (Exception e) {
-            System.out.println("⚠️  Load Average não disponível: " + e.getMessage());
+            // Load Average não disponível
         }
 
         throw new Exception("Nenhum método de coleta de CPU funcionou para Linux");
     }
 
-   
     private Double getWindowsCpuUsage() throws Exception {
-        System.out.println("📊 Detectado: Sistema Windows");
-
         // MÉTODO 1: Host Resources MIB - média de hrProcessorLoad por core
         try {
             List<VariableBinding> cpuLoads = snmpWalk(OID_HR_PROCESSOR_LOAD);
@@ -348,7 +336,7 @@ public class SnmpHelper {
 
                         // Validação: 0..100
                         if (load >= 0 && load <= 100) {
-                          return load;
+                            return load;
                         }
                     } catch (NumberFormatException ignored) {
                     }
@@ -356,17 +344,15 @@ public class SnmpHelper {
 
                 if (validCount > 0) {
                     double avgLoad = totalLoad / validCount;
-                    System.out.println("✅ CPU (Host Resources média de " + validCount + " cores): "
-                            + String.format("%.2f%%", avgLoad));
-                    return avgLoad;
+                    return clampPercent(avgLoad);
                 }
             }
         } catch (Exception e) {
-            System.out.println("⚠️  Host Resources MIB (walk) não disponível: " + e.getMessage());
+            // Host Resources MIB (walk) não disponível
         }
 
         // MÉTODO 2: Host Resources MIB - tentar índices comuns individuais
-        int[] commonIndexes = {1, 2, 0, 196608};
+        int[] commonIndexes = { 1, 2, 0, 196608 };
         double total = 0;
         int count = 0;
         for (int idx : commonIndexes) {
@@ -400,23 +386,19 @@ public class SnmpHelper {
         }
         if (count > 0) {
             double avg = total / count;
-            System.out.println("✅ CPU (Host Resources índices individuais): " + String.format("%.2f%%", avg)
-                    + " (" + count + " núcleos)");
             return avg;
         }
 
         // MÉTODO 3: OID específico Windows (pode variar por agente SNMP)
         try {
             // Tenta alguns índices usuais
-            String[] candidates = {OID_WIN_CPU_UTIL + ".0", OID_WIN_CPU_UTIL + ".1", OID_WIN_CPU_UTIL};
+            String[] candidates = { OID_WIN_CPU_UTIL + ".0", OID_WIN_CPU_UTIL + ".1", OID_WIN_CPU_UTIL };
             for (String oid : candidates) {
                 try {
                     String winCpu = getAsString(oid);
                     if (winCpu != null && !winCpu.contains("noSuch")) {
                         double usage = Double.parseDouble(winCpu.trim());
                         if (usage >= 0 && usage <= 100) {
-                            System.out.println("✅ CPU (Windows OID): " + String.format("%.2f%%", usage)
-                                    + " via " + oid);
                             return usage;
                         }
                     }
@@ -424,7 +406,7 @@ public class SnmpHelper {
                 }
             }
         } catch (Exception e) {
-            System.out.println("⚠️  Windows OID específico não disponível: " + e.getMessage());
+            // Windows OID específico não disponível
         }
 
         throw new Exception("Nenhum método de coleta de CPU funcionou para Windows");
@@ -445,10 +427,6 @@ public class SnmpHelper {
             // Limita entre 0 e 100
             percent = Math.min(100.0, Math.max(0.0, percent));
 
-            System.out.println("✅ CPU (Load Average): " + String.format("%.2f", load)
-                    + " → " + String.format("%.2f%%", percent)
-                    + " (" + cpuCount + " cores)");
-
             return clampPercent(percent);
         }
 
@@ -456,8 +434,6 @@ public class SnmpHelper {
     }
 
     private Double getFallbackCpuUsage() throws Exception {
-        System.out.println("⚠️  Tentando método de fallback genérico...");
-
         // Tenta Host Resources mesmo em Linux (alguns suportam)
         try {
             List<VariableBinding> cpuLoads = snmpWalk(OID_HR_PROCESSOR_LOAD);
@@ -478,12 +454,11 @@ public class SnmpHelper {
 
                 if (count > 0) {
                     double avg = totalLoad / count;
-                    System.out.println("✅ CPU (Fallback HR): " + String.format("%.2f%%", avg));
                     return clampPercent(avg);
                 }
             }
         } catch (Exception e) {
-            System.out.println("⚠️  Fallback HR falhou: " + e.getMessage());
+            // Fallback HR failed
         }
 
         throw new Exception("Todos os métodos de coleta de CPU falharam");
@@ -529,7 +504,6 @@ public class SnmpHelper {
             Double usage = getCpuUsagePercent();
             return String.format("%.2f", usage);
         } catch (Exception e) {
-            System.err.println("❌ Não foi possível obter CPU: " + e.getMessage());
             return null;
         }
     }
@@ -548,7 +522,6 @@ public class SnmpHelper {
                 return getAsString(OID_MEM_TOTAL_REAL);
             }
         } catch (Exception e) {
-            System.err.println("Memória total não disponível: " + e.getMessage());
             return null;
         }
     }
@@ -564,7 +537,6 @@ public class SnmpHelper {
                 return getAsString(OID_MEM_AVAIL_REAL);
             }
         } catch (Exception e) {
-            System.err.println("Memória disponível não disponível: " + e.getMessage());
             return null;
         }
     }
@@ -580,7 +552,6 @@ public class SnmpHelper {
                 return getAsString(OID_MEM_USED_REAL);
             }
         } catch (Exception e) {
-            System.err.println("Memória usada não disponível: " + e.getMessage());
             return null;
         }
     }
@@ -644,7 +615,6 @@ public class SnmpHelper {
                 return getAsString(OID_DISK_TOTAL + ".1");
             }
         } catch (Exception e) {
-            System.err.println("Disco total não disponível: " + e.getMessage());
             return null;
         }
     }
@@ -660,7 +630,6 @@ public class SnmpHelper {
                 return getAsString(OID_DISK_USED + ".1");
             }
         } catch (Exception e) {
-            System.err.println("Disco usado não disponível: " + e.getMessage());
             return null;
         }
     }
@@ -676,7 +645,6 @@ public class SnmpHelper {
                 return getAsString(OID_DISK_AVAIL + ".1");
             }
         } catch (Exception e) {
-            System.err.println("Disco disponível não disponível: " + e.getMessage());
             return null;
         }
     }
@@ -744,130 +712,20 @@ public class SnmpHelper {
     /**
      * Método para debug - testa todos os OIDs importantes
      */
+    // Debug method removed - use proper logging framework for diagnostics
+    @Deprecated
     public void debugSnmpOids() {
-        System.out.println("\n=== DEBUG SNMP OIDs ===");
-
-        String[] testOids = {
-            OID_SYS_DESCR, OID_SYS_UPTIME, OID_HOSTNAME,
-            OID_HR_PROCESSOR_LOAD + ".1", OID_CPU_LOAD_1MIN,
-            OID_SS_CPU_IDLE_PERCENT, OID_SS_CPU_USER_PERCENT,
-            OID_MEM_TOTAL_REAL, OID_HR_STORAGE_TYPE + ".1",
-            OID_HR_STORAGE_SIZE + ".1", OID_IF_NUMBER
-        };
-
-        String[] testNames = {
-            "System Description", "System Uptime", "Hostname",
-            "CPU Load (HR)", "CPU Load Average",
-            "CPU Idle %", "CPU User %",
-            "Memory Total", "Storage Type",
-            "Storage Size", "Interface Count"
-        };
-
-        for (int i = 0; i < testOids.length; i++) {
-            try {
-                String result = getAsString(testOids[i]);
-                System.out.println("[✅ OK] " + testNames[i] + ": " + result);
-            } catch (Exception e) {
-                System.out.println("[❌ FAIL] " + testNames[i] + ": " + e.getMessage());
-            }
-        }
-
-        System.out.println("\n=== Teste de CPU Inteligente ===");
-        try {
-            Double cpuUsage = getCpuUsagePercent();
-            System.out.println("[✅ OK] CPU Usage: " + String.format("%.2f%%", cpuUsage));
-        } catch (Exception e) {
-            System.out.println("[❌ FAIL] CPU Usage: " + e.getMessage());
-        }
-
-        System.out.println("=== FIM DEBUG ===\n");
+        // This method is deprecated - use logging instead
     }
 
     /**
-     * Diagnóstico detalhado para coleta de discos
-     * Ajuda a identificar qual MIB está disponível no servidor SNMP
+     * Diagnostic method removed - use proper logging framework for diagnostics
+     * 
+     * @deprecated Use logging framework instead of console output
      */
+    @Deprecated
     public void diagnosticDiskCollection() {
-        System.out.println("\n╔════════════════════════════════════════════════════════════════╗");
-        System.out.println("║              DIAGNÓSTICO DE COLETA DE DISCOS                      ║");
-        System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
-
-        try {
-            String sysDescr = getSystemDescription();
-            System.out.println("🖥️  Sistema: " + sysDescr);
-            
-            boolean isWin = isWindowsSystem();
-            System.out.println("🔍 Tipo detectado: " + (isWin ? "WINDOWS" : "LINUX/UNIX"));
-        } catch (Exception e) {
-            System.out.println("❌ Erro ao detectar sistema: " + e.getMessage());
-        }
-
-        System.out.println("\n--- TESTE 1: UCD-MIB (Net-SNMP) ---");
-        System.out.println("Testando OID: 1.3.6.1.4.1.2021.9.1.2 (disk paths)");
-        int ucdDisksFound = 0;
-        for (int i = 1; i <= 5; i++) {
-            try {
-                String path = getAsString(OID_DISK_PATH + "." + i);
-                if (path != null && !path.contains("noSuch")) {
-                    System.out.println("  ✅ Índice " + i + ": " + path);
-                    ucdDisksFound++;
-                }
-            } catch (Exception e) {
-                // Silent
-            }
-        }
-        if (ucdDisksFound == 0) {
-            System.out.println("  ❌ Nenhum disco encontrado via UCD-MIB");
-        } else {
-            System.out.println("  ✅ UCD-MIB funcional! (" + ucdDisksFound + " discos)");
-        }
-
-        System.out.println("\n--- TESTE 2: Host Resources MIB Storage ---");
-        System.out.println("Testando OID: 1.3.6.1.2.1.25.2.3.1.3 (storage descriptions)");
-        int hrStorageFound = 0;
-        int hrFilesystemsFound = 0;
-        for (int i = 1; i <= 100; i++) {
-            try {
-                String type = getAsString(OID_HR_STORAGE_TYPE + "." + i);
-                String desc = getAsString(OID_HR_STORAGE_DESCR + "." + i);
-                
-                if (type != null && !type.contains("noSuch") && desc != null) {
-                    System.out.println("  📊 Índice " + i + ": " + desc + " (tipo: " + type + ")");
-                    hrStorageFound++;
-                    
-                    if (desc.startsWith("/") || type.endsWith(".4")) {
-                        hrFilesystemsFound++;
-                    }
-                }
-            } catch (Exception e) {
-                // Silent
-            }
-        }
-        if (hrStorageFound == 0) {
-            System.out.println("  ❌ Host Resources MIB não disponível");
-        } else {
-            System.out.println("  ✅ Host Resources MIB disponível!");
-            System.out.println("     ↳ " + hrStorageFound + " storage entries");
-            System.out.println("     ↳ " + hrFilesystemsFound + " parecem ser filesystems");
-        }
-
-        System.out.println("\n--- RECOMENDAÇÕES ---");
-        if (ucdDisksFound == 0 && hrFilesystemsFound == 0) {
-            System.out.println("⚠️  NENHUMA fonte de dados de disco encontrada!");
-            System.out.println("    Você precisa:");
-            System.out.println("    1. Instalar Net-SNMP com suporte completo MIB");
-            System.out.println("    2. Configurar /etc/snmp/snmpd.conf com:");
-            System.out.println("       - rocommunity public");
-            System.out.println("       - disk / 10000");
-            System.out.println("    3. Reiniciar: sudo systemctl restart snmpd");
-        } else if (ucdDisksFound > 0) {
-            System.out.println("✅ UCD-MIB está funcionando. Discos devem ser coletados normalmente.");
-        } else if (hrFilesystemsFound > 0) {
-            System.out.println("✅ Host Resources MIB com filesystems está disponível.");
-            System.out.println("   Usaremos este como fallback se UCD-MIB falhar.");
-        }
-
-        System.out.println("\n╚════════════════════════════════════════════════════════════════╝\n");
+        // This method is deprecated - use logging instead
     }
 
     /**
@@ -880,29 +738,22 @@ public class SnmpHelper {
 
         try {
             boolean isWindows = isWindowsSystem();
-            System.out.println("🖥️  Sistema detectado: " + (isWindows ? "WINDOWS" : "LINUX/UNIX"));
 
             if (isWindows) {
                 // Windows: usa Host Resources MIB para enumerar todos os discos
-                System.out.println("📀 Coletando discos via Host Resources MIB (Windows)...");
                 diskList = collectWindowsDisks();
             } else {
                 // Linux: usa Net-SNMP para enumerar discos
-                System.out.println("📀 Coletando discos via UCD-MIB (Linux)...");
                 diskList = collectLinuxDisks();
             }
-
-            System.out.println("📊 Total de discos encontrados: " + diskList.size());
 
             // Calcula percentuais para todos os discos
             for (com.victorqueiroga.serverwatch.dto.DiskInfoDto disk : diskList) {
                 disk.calculateUsagePercent();
-                System.out.println("   - " + disk.getPath() + ": " + disk.getUsagePercent() + "% utilizado");
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Erro ao coletar lista de discos: " + e.getMessage());
-            e.printStackTrace();
+            // Error collecting disks
         }
 
         return diskList;
@@ -972,7 +823,7 @@ public class SnmpHelper {
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Erro ao coletar discos Windows: " + e.getMessage());
+            // Error collecting Windows disks
         }
 
         return diskList;
@@ -985,14 +836,13 @@ public class SnmpHelper {
         java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
 
         try {
-            System.out.println("🔍 Coletando discos Linux via SNMP...");
-            
+
             // Net-SNMP enumera discos nos índices 1, 2, 3...
             // Aumentar para 20 para contemplar mais discos
             for (int i = 1; i <= 20; i++) {
                 try {
                     String path = getAsString(OID_DISK_PATH + "." + i);
-                    
+
                     // Se path é nulo ou contém erro SNMP, pula
                     if (path == null || path.contains("noSuch") || path.trim().isEmpty()) {
                         continue;
@@ -1001,9 +851,6 @@ public class SnmpHelper {
                     String total = getAsString(OID_DISK_TOTAL + "." + i);
                     String used = getAsString(OID_DISK_USED + "." + i);
                     String avail = getAsString(OID_DISK_AVAIL + "." + i);
-
-                    System.out.println("📊 Disco encontrado [índice " + i + "]: " + path);
-                    System.out.println("   Total: " + total + " KB, Usado: " + used + " KB, Disponível: " + avail + " KB");
 
                     if (total != null && !total.contains("noSuch")
                             && used != null && !used.contains("noSuch")
@@ -1031,10 +878,9 @@ public class SnmpHelper {
                                 disk.calculateUsagePercent();
 
                                 diskList.add(disk);
-                                System.out.println("   ✅ Disco adicionado: " + totalGB + " GB total, " + usedGB + " GB usado");
                             }
                         } catch (NumberFormatException nfe) {
-                            System.out.println("   ⚠️ Erro ao parsear números para disco em índice " + i + ": " + nfe.getMessage());
+                            // Number parsing error for disk
                         }
                     }
 
@@ -1043,36 +889,32 @@ public class SnmpHelper {
                 }
             }
 
-            System.out.println("📈 Total de discos coletados (UCD-MIB): " + diskList.size());
-
             // Se não encontrou discos com UCD-MIB, tenta Host Resources MIB (fallback)
             if (diskList.isEmpty()) {
-                System.out.println("⚠️  UCD-MIB não retornou discos. Tentando Host Resources MIB (fallback)...");
                 diskList = collectLinuxDisksViaHostResources();
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Erro ao coletar discos Linux: " + e.getMessage());
-            e.printStackTrace();
+            // Error collecting Linux disks
         }
 
         return diskList;
     }
 
     /**
-     * Coleta discos do Linux usando Host Resources MIB (fallback quando UCD-MIB não funciona)
+     * Coleta discos do Linux usando Host Resources MIB (fallback quando UCD-MIB não
+     * funciona)
      */
     private java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> collectLinuxDisksViaHostResources() {
         java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
 
         try {
-            System.out.println("🔍 Coletando discos Linux via Host Resources MIB...");
-            
             int storageEntriesFound = 0;
             int diskEntriesFound = 0;
-            
+
             // Enumera índices de storage do Host Resources MIB
-            // Aumentado para 100 para contemplar índices maiores (some systems use indices > 50)
+            // Aumentado para 100 para contemplar índices maiores (some systems use indices
+            // > 50)
             for (int i = 1; i <= 100; i++) {
                 try {
                     // Verifica o tipo de storage
@@ -1089,23 +931,19 @@ public class SnmpHelper {
                         continue;
                     }
 
-                    System.out.println("📊 Storage encontrado [índice " + i + "]: " + description + " (tipo: " + storageType + ")");
-
                     // Filtra por tipos comuns de disco em Linux
                     // Tipo .4 = fixed disk (padrão em Linux também)
                     // Alternativamente, filtra por descrição contendo / (mount points Linux)
                     // Também pula tipos de memória (1.1 = other, 1.2 = RAM, 1.3 = virtual)
                     String typeStr = storageType.trim();
-                    
+
                     // Se é memória física (Physical memory, Virtual memory, etc), pula
                     if (typeStr.endsWith(".1") || typeStr.endsWith(".2") || typeStr.endsWith(".3")) {
-                        System.out.println("   ⏭️  Pulando (é memória, não disco)");
                         continue;
                     }
-                    
+
                     // Se não começa com "/" e não é disco fixo (.4), pula
                     if (!description.startsWith("/") && !storageType.endsWith(".4")) {
-                        System.out.println("   ⏭️  Pulando (descrição não é mount point e tipo não é .4)");
                         continue;
                     }
 
@@ -1129,7 +967,7 @@ public class SnmpHelper {
                             long totalBytes = total * unit;
                             long usedBytes = used * unit;
                             long availableBytes = totalBytes - usedBytes;
-                            
+
                             long totalGB = totalBytes / (1024 * 1024 * 1024);
                             long usedGB = usedBytes / (1024 * 1024 * 1024);
                             long availableGB = availableBytes / (1024 * 1024 * 1024);
@@ -1146,12 +984,9 @@ public class SnmpHelper {
                                 disk.calculateUsagePercent();
 
                                 diskList.add(disk);
-                                System.out.println("   ✅ Disco adicionado: " + totalGB + " GB total, " + usedGB + " GB usado, " + availableGB + " GB disponível");
-                            } else {
-                                System.out.println("   ⏭️  Pulando (tamanho muito pequeno: " + totalBytes + " bytes)");
                             }
                         } catch (NumberFormatException nfe) {
-                            System.out.println("   ⚠️ Erro ao parsear números: " + nfe.getMessage());
+                            // Number parsing error
                         }
                     }
 
@@ -1160,19 +995,8 @@ public class SnmpHelper {
                 }
             }
 
-            System.out.println("📈 Total de entries de storage encontradas: " + storageEntriesFound);
-            System.out.println("📈 Total de entries candidatas a disco: " + diskEntriesFound);
-            System.out.println("📈 Total de discos coletados (Host Resources MIB): " + diskList.size());
-            
-            // Se ainda não encontrou discos, log diagnóstico
-            if (diskList.isEmpty() && storageEntriesFound > 0) {
-                System.out.println("⚠️  DIAGNÓSTICO: Host Resources MIB encontrou " + storageEntriesFound 
-                    + " storage entries, mas nenhuma corresponde a disco. "
-                    + "O SNMP agent deste servidor pode não ter filesystem info configurada.");
-            }
-
         } catch (Exception e) {
-            System.err.println("❌ Erro ao coletar discos Linux via Host Resources: " + e.getMessage());
+            // Error collecting disks from Host Resources
         }
 
         return diskList;
@@ -1202,6 +1026,7 @@ public class SnmpHelper {
      * Útil para iterar tabelas como hrProcessorLoad.
      *
      * * @param oidBase OID raiz da tabela (ex: 1.3.6.1.2.1.25.3.3.1.2)
+     * 
      * @return Uma lista de VariableBindings (OID e Valor) encontrados.
      */
     public List<VariableBinding> snmpWalk(String oidBase) throws Exception {

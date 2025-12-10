@@ -144,57 +144,33 @@ public class UserService {
     private Set<User.ApplicationRole> mapKeycloakRolesToApplicationRoles(KeycloakUser keycloakUser) {
         Set<User.ApplicationRole> appRoles = new java.util.HashSet<>();
 
-        // DEBUG: Log todas as authorities recebidas
-        log.info("=== ROLE MAPPING DEBUG ===");
-        log.info("Usuário: {}", keycloakUser.getUsername());
-        log.info("Total de authorities: {}", keycloakUser.getAuthorities().size());
-        keycloakUser.getAuthorities().forEach(auth -> log.info("  Authority: {}", auth.getAuthority()));
-
-        // Mapear roles do Keycloak para roles da aplicação
-        // Usando hasRole que verifica com "ROLE_" prefix
-
-        log.info("Verificando hasRole('ADMIN'): {}", keycloakUser.hasRole("ADMIN"));
-        log.info("Verificando hasRole('USER'): {}", keycloakUser.hasRole("USER"));
-        log.info("Verificando hasRole('SERVER_MANAGER'): {}", keycloakUser.hasRole("SERVER_MANAGER"));
-        log.info("Verificando hasRole('ALERT_MANAGER'): {}", keycloakUser.hasRole("ALERT_MANAGER"));
-
         if (keycloakUser.hasRole("ADMIN")) {
             appRoles.add(User.ApplicationRole.SYSTEM_ADMIN);
             appRoles.add(User.ApplicationRole.SERVER_MANAGER);
             appRoles.add(User.ApplicationRole.ALERT_MANAGER);
             appRoles.add(User.ApplicationRole.REPORT_VIEWER);
             appRoles.add(User.ApplicationRole.MONITORING_VIEWER);
-            log.info("✓ Usuário {} tem role ADMIN, adicionadas todas as roles", keycloakUser.getUsername());
         } else {
             if (keycloakUser.hasRole("USER")) {
                 appRoles.add(User.ApplicationRole.MONITORING_VIEWER);
                 appRoles.add(User.ApplicationRole.REPORT_VIEWER);
-                log.info("✓ Usuário {} tem role USER", keycloakUser.getUsername());
             }
 
             // Roles específicas adicionais (podem ser combinadas)
             if (keycloakUser.hasRole("SERVER_MANAGER")) {
                 appRoles.add(User.ApplicationRole.SERVER_MANAGER);
-                log.info("✓ Usuário {} tem role SERVER_MANAGER", keycloakUser.getUsername());
             }
 
             if (keycloakUser.hasRole("ALERT_MANAGER")) {
                 appRoles.add(User.ApplicationRole.ALERT_MANAGER);
-                log.info("✓ Usuário {} tem role ALERT_MANAGER", keycloakUser.getUsername());
             }
         }
 
         if (appRoles.isEmpty()) {
-            log.warn("✗ Usuário {} não possui nenhuma role mapeada! Adicionando MONITORING_VIEWER como padrão.",
-                    keycloakUser.getUsername());
             // Adicionar role padrão se nenhuma for encontrada
             appRoles.add(User.ApplicationRole.MONITORING_VIEWER);
         }
 
-        log.info("Application Roles mapeadas: {}", appRoles);
-        log.info("=== FIM ROLE MAPPING DEBUG ===");
-
-        log.info("Roles mapeadas para usuário {}: {}", keycloakUser.getUsername(), appRoles);
         return appRoles;
     }
 

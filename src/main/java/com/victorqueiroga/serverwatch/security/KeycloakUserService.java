@@ -47,27 +47,6 @@ public class KeycloakUserService {
             // Extrair informações básicas do ID Token
             OidcIdToken idToken = oidcUser.getIdToken();
 
-            // ========== DETAILED TOKEN CLAIMS DEBUG ==========
-            log.info("═══════════════════════════════════════════════════════════════════");
-            log.info("[KeycloakUserService] EXAMINANDO TODOS OS CLAIMS DO TOKEN JWT");
-            log.info("═══════════════════════════════════════════════════════════════════");
-
-            idToken.getClaims().forEach((key, value) -> {
-                String valueStr = String.valueOf(value);
-                if (valueStr.length() > 300) {
-                    valueStr = valueStr.substring(0, 300) + "...";
-                }
-                log.info("  {} = {}", key, valueStr);
-            });
-
-            // Check specific claims
-            log.info("[KeycloakUserService] VERIFICANDO CLAIMS ESPECÍFICOS:");
-            log.info("  realm_access: {}", idToken.getClaimAsMap("realm_access"));
-            log.info("  resource_access: {}", idToken.getClaimAsMap("resource_access"));
-            log.info("  roles: {}", idToken.getClaims().get("roles"));
-            log.info("  groups: {}", idToken.getClaims().get("groups"));
-            log.info("═══════════════════════════════════════════════════════════════════");
-
             String id = idToken.getSubject();
             String username = idToken.getClaimAsString("preferred_username");
             String email = idToken.getEmail();
@@ -78,9 +57,6 @@ public class KeycloakUserService {
             // Extrair authorities do principal (já foram processadas pelo
             // CustomOidcUserService)
             Set<GrantedAuthority> authorities = new HashSet<>(oidcUser.getAuthorities());
-
-            log.info("[KeycloakUserService] Authorities extraídas do OidcUser: {}",
-                    authorities.stream().map(GrantedAuthority::getAuthority).toList());
 
             return KeycloakUser.builder()
                     .id(id)

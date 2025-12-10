@@ -61,6 +61,5 @@ public class MockAlertService {
 
     public void resolveAlert(Long alertId) {
         // Mock - não faz nada
-        System.out.println("Mock: Resolving alert " + alertId);
     }
 }

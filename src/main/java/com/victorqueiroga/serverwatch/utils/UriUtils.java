@@ -6,16 +6,13 @@ import java.nio.charset.StandardCharsets;
 
 public class UriUtils {
     public static String encode(String uri) {
-       try {
+        try {
             String encodedValue = URLEncoder.encode(uri, StandardCharsets.UTF_8.toString());
-            System.out.println("Encoded query parameter: " + encodedValue);
             return encodedValue;
-        } catch (UnsupportedEncodingException e) {            
-            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
             return null;
         }
-      
-    }
 
+    }
 
 }
