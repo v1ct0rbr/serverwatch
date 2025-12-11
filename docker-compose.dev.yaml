@@ -20,6 +20,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.flyway    
+    restart: "no"
     environment:
       - FLYWAY_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
       - FLYWAY_USER=${DATABASE_USER}

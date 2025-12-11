@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: serverwatch-app
+    restart: always
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
       - SPRING_DATASOURCE_USERNAME=${DATABASE_USER}
@@ -51,6 +52,7 @@ services:
   serverwatch-db:
     image: postgres:17
     container_name: serverwatch-db
+    restart: always
     environment:
       - POSTGRES_USER=${DATABASE_USER}
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
@@ -73,6 +75,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.flyway
+    restart: "no"
     environment:
       - FLYWAY_URL=jdbc:postgresql://serverwatch-db:5432/${DATABASE_NAME}
       - FLYWAY_USER=${DATABASE_USER}
