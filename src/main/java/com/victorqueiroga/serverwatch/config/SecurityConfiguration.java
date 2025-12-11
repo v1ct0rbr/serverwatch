@@ -74,9 +74,14 @@ public class SecurityConfiguration {
                                 .csrf(csrf -> csrf.disable())
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-
-                                // Configuração OAuth2 Login para Keycloak
+                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                                                .sessionConcurrency(sc -> sc
+                                                                .maximumSessions(1)
+                                                                .expiredUrl("/login?error=session_expired"))) // Limita
+                                                                                                              // a 1
+                                                                                                              // sessão
+                                                                                                              // por
+                                                                                                              // usuário
                                 .oauth2Login(oauth2 -> oauth2
                                                 .loginPage("/login")
                                                 .defaultSuccessUrl("/dashboard", true)

@@ -61,6 +61,18 @@ public class AuthController extends AbstractController {
                     model.addAttribute("hint", "Verifique a conexão com o servidor de identidade e tente novamente.");
                     log.warn("Timeout detectado durante autenticação OAuth2");
                     break;
+                case "session_expired":
+                    model.addAttribute("error", "Sua sessão expirou durante a autenticação.");
+                    model.addAttribute("hint",
+                            "Isso pode ocorrer se: a navegação demorou muito, você ficou inativo, ou o navegador perdeu cookies. Tente novamente.");
+                    log.warn("Sessão expirada detectada durante OAuth2 flow");
+                    break;
+                case "authorization_request_not_found":
+                    model.addAttribute("error", "A requisição de autenticação foi perdida.");
+                    model.addAttribute("hint",
+                            "Limpe os cookies do navegador e tente novamente, ou use uma janela anônima.");
+                    log.warn("Authorization request not found");
+                    break;
                 case "authentication_required":
                     model.addAttribute("error", "Autenticação necessária");
                     break;

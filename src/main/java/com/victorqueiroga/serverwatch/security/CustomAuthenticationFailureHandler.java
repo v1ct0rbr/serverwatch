@@ -33,6 +33,17 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
             log.warn("OAuth2 Authentication Failed - Code: {}, Message: {}", errorCode, errorMessage);
 
+            // Detectar erros específicos
+            switch (errorCode) {
+                case "authorization_request_not_found":
+                    log.warn("Sessão expirou ou cookie foi perdido durante OAuth2 flow");
+                    errorCode = "session_expired";
+                    break;
+                case "invalid_request":
+                    log.warn("Requisição OAuth2 inválida: {}", errorMessage);
+                    break;
+            }
+
             // Detectar timeouts específicos
             if (exception.getCause() != null) {
                 String causeMessage = exception.getCause().getMessage();
