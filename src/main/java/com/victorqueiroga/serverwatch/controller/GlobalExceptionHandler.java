@@ -1,6 +1,7 @@
 package com.victorqueiroga.serverwatch.controller;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +20,11 @@ import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Tratador global de exceções da aplicação.
- * Captura e trata exceções em toda a aplicação, retornando templates
- * apropriados.
+ * Funciona em conjunto com CustomErrorController para proporcionar
+ * tratamento consistente de erros.
+ * 
+ * - CustomErrorController: Trata erros HTTP via /error
+ * - GlobalExceptionHandler: Trata exceções lançadas na aplicação
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -29,15 +33,13 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções de recurso não encontrado (404)
-     * Inclui handler para NoHandlerFoundException (URLs) e NoResourceFoundException
-     * (templates)
      */
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ModelAndView handleNoHandlerFound(NoHandlerFoundException ex, HttpServletRequest request) {
         logger.warn("Recurso não encontrado: {} {}", request.getMethod(), ex.getRequestURL());
 
-        ModelAndView mav = new ModelAndView("error/404");
+        ModelAndView mav = new ModelAndView("error");
         mav.addObject("status", 404);
         mav.addObject("message", "A página que você procura não existe");
         mav.addObject("uri", request.getRequestURI());
@@ -48,20 +50,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Trata exceções de recurso estático/template não encontrado (404)
-     * NoResourceFoundException é lançada quando um template Thymeleaf não existe
+     * Trata exceções de recurso estático não encontrado (404)
+     * Recursos como CSS, JS, imagens que não existem
      */
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ModelAndView handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
-        logger.warn("Recurso não encontrado (template/static): {}", ex.getResourcePath());
+        logger.warn("Recurso estático não encontrado: {}", ex.getResourcePath());
 
-        ModelAndView mav = new ModelAndView("error/404");
+        ModelAndView mav = new ModelAndView("error");
         mav.addObject("status", 404);
         mav.addObject("message", "Recurso não encontrado");
         mav.addObject("uri", request.getRequestURI());
         mav.addObject("timestamp", LocalDateTime.now());
-        mav.addObject("detail", "O template ou recurso solicitado não foi encontrado. Verifique a configuração.");
+        mav.addObject("detail", "O arquivo ou recurso solicitado não existe no servidor.");
 
         return mav;
     }
@@ -74,7 +76,7 @@ public class GlobalExceptionHandler {
     public ModelAndView handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         logger.warn("Acesso negado para: {}", request.getRequestURI());
 
-        ModelAndView mav = new ModelAndView("error/403");
+        ModelAndView mav = new ModelAndView("error");
         mav.addObject("status", 403);
         mav.addObject("message", "Acesso negado");
         mav.addObject("uri", request.getRequestURI());
@@ -92,7 +94,7 @@ public class GlobalExceptionHandler {
     public ModelAndView handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpServletRequest request) {
         logger.error("Argumento inválido enviado para: {}", request.getRequestURI());
 
-        ModelAndView mav = new ModelAndView("error/400");
+        ModelAndView mav = new ModelAndView("error");
         mav.addObject("status", 400);
         mav.addObject("message", "Dados inválidos");
         mav.addObject("uri", request.getRequestURI());
@@ -108,17 +110,21 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @SuppressWarnings("null")
     public ModelAndView handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex,
             HttpServletRequest request) {
         logger.error("Tipo de argumento inválido: {} para {}", ex.getName(), ex.getValue());
 
-        ModelAndView mav = new ModelAndView("error/400");
+        ModelAndView mav = new ModelAndView("error");
         mav.addObject("status", 400);
         mav.addObject("message", "Tipo de dados inválido");
         mav.addObject("uri", request.getRequestURI());
         mav.addObject("timestamp", LocalDateTime.now());
-        mav.addObject("detail", String.format("O parâmetro '%s' deve ser do tipo %s", ex.getName(),
-                ex.getRequiredType().getSimpleName()));
+        
+        String typeName = Optional.ofNullable(ex.getRequiredType())
+            .map(Class::getSimpleName)
+            .orElse("desconhecido");
+        mav.addObject("detail", String.format("O parâmetro '%s' deve ser do tipo %s", ex.getName(), typeName));
 
         return mav;
     }
@@ -131,7 +137,7 @@ public class GlobalExceptionHandler {
     public ModelAndView handleBusinessException(BusinessException ex, HttpServletRequest request) {
         logger.error("Erro de negócio: {}", ex.getMessage());
 
-        ModelAndView mav = new ModelAndView("error/business");
+        ModelAndView mav = new ModelAndView("error");
         mav.addObject("status", 400);
         mav.addObject("message", ex.getMessage());
         mav.addObject("uri", request.getRequestURI());
@@ -150,7 +156,7 @@ public class GlobalExceptionHandler {
     public ModelAndView handleGeneralException(Exception ex, HttpServletRequest request) {
         logger.error("Erro interno do servidor", ex);
 
-        ModelAndView mav = new ModelAndView("error/500");
+        ModelAndView mav = new ModelAndView("error");
         mav.addObject("status", 500);
         mav.addObject("message", "Erro interno do servidor");
         mav.addObject("uri", request.getRequestURI());

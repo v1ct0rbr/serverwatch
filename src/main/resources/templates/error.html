@@ -253,16 +253,28 @@
         <!-- Content -->
         <div class="error-content">
             <!-- Info Box -->
+            <div class="info-box" th:if="${status == 400}">
+                Verifique os dados que você enviou. Alguns campos podem estar com valores inválidos ou ausentes.
+            </div>
+            
+            <div class="info-box" th:if="${status == 401}">
+                Você precisa estar autenticado para acessar este recurso. Por favor, faça login.
+            </div>
+            
             <div class="info-box" th:if="${status == 403}">
                 Se acredita que isso é um erro, contate o administrador do sistema.
             </div>
             
             <div class="info-box" th:if="${status == 404}">
-                A página que você procura pode ter sido movida ou deletada.
+                A página que você procura pode ter sido movida ou deletada. Verifique a URL digitada.
             </div>
             
             <div class="info-box" th:if="${status == 500}">
                 Nossos engenheiros foram notificados. Por favor, tente novamente mais tarde.
+            </div>
+            
+            <div class="info-box" th:if="${status == 503}">
+                O sistema está em manutenção. Por favor, tente novamente mais tarde.
             </div>
             
             <!-- Message -->
@@ -270,7 +282,34 @@
                 Ocorreu um erro ao processar sua requisição.
             </p>
             
-            <!-- Details -->
+            <!-- Additional Detail -->
+            <div class="error-details" th:if="${detail != null}">
+                <div class="detail-item">
+                    <span class="detail-label">Detalhes</span>
+                    <span class="detail-value" th:text="${detail}">Informação adicional</span>
+                </div>
+            </div>
+            
+            <!-- Error Code (Business Exception) -->
+            <div class="error-details" th:if="${errorCode != null}">
+                <div class="detail-item">
+                    <span class="detail-label">Código do Erro</span>
+                    <span class="detail-value" th:text="${errorCode}">ERR_CODE</span>
+                </div>
+            </div>
+            
+            <!-- Validation Errors -->
+            <div class="error-details" th:if="${errors != null and errors.size() > 0}">
+                <div class="detail-item">
+                    <span class="detail-label">Campos com Erro:</span>
+                </div>
+                <div class="detail-item" th:each="error : ${errors}">
+                    <strong th:text="${error.field}">campo</strong>: 
+                    <span th:text="${error.defaultMessage}">erro de validação</span>
+                </div>
+            </div>
+            
+            <!-- Request Details -->
             <div class="error-details">
                 <div class="detail-item" th:if="${timestamp != null}">
                     <span class="detail-label">Timestamp</span>
