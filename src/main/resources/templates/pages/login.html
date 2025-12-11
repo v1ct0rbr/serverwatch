@@ -102,6 +102,10 @@
         <div th:if="${error}" class="alert alert-danger" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>
             <span th:text="${error}">Erro de autenticação</span>
+            <div th:if="${hint}" class="alert-text mt-2" style="font-size: 0.9rem; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+                <i class="fas fa-lightbulb me-1" style="color: #ffb81c;"></i>
+                <span th:text="${hint}">Dica útil</span>
+            </div>
         </div>
 
         <div th:if="${message}" class="alert alert-success" role="alert">

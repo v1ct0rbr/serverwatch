@@ -49,14 +49,34 @@ public class AuthController extends AbstractController {
         }
 
         if (error != null) {
-            model.addAttribute("error", "Erro na autenticação. Tente novamente.");
-            log.warn("Erro de autenticação detectado");
+            // Tentar decodificar o tipo de erro
+            switch (error) {
+                case "true":
+                    model.addAttribute("error",
+                            "Falha ao conectar com o Keycloak. Verifique a conexão e tente novamente.");
+                    model.addAttribute("hint", "Se o erro persistir, aguarde alguns segundos e tente novamente.");
+                    break;
+                case "timeout":
+                    model.addAttribute("error", "Timeout na autenticação. O Keycloak está demorando para responder.");
+                    model.addAttribute("hint", "Verifique a conexão com o servidor de identidade e tente novamente.");
+                    log.warn("Timeout detectado durante autenticação OAuth2");
+                    break;
+                case "authentication_required":
+                    model.addAttribute("error", "Autenticação necessária");
+                    break;
+                case "invalid_authentication":
+                    model.addAttribute("error", "Credenciais inválidas");
+                    break;
+                default:
+                    model.addAttribute("error", "Erro na autenticação: " + error);
+            }
+            log.warn("Erro de autenticação detectado: {}", error);
         }
 
         if (logout != null) {
             model.addAttribute("message", "Logout realizado com sucesso.");
         }
-        
+
         // Spring Security OAuth2 vai redirecionar automaticamente para o Keycloak
         // quando acessar /oauth2/authorization/keycloak
         // Você pode usar um link simples para isso no template

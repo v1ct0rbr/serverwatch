@@ -41,6 +41,11 @@ spring:
             user-name-attribute: preferred_username
             issuer-uri: ${KEYCLOAK_AUTH_SERVER_URL:https://keycloak.derpb.com.br}/realms/${KEYCLOAK_REALM:DERPB}
   
+  # Configuração de requisições HTTP para OAuth2
+  http-client:
+    connect-timeout: 10000
+    read-timeout: 30000
+  
   datasource:
     url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5435}/${DATABASE_NAME:serverwatch_db}
     username: ${DATABASE_USER:serverwatch_user}
