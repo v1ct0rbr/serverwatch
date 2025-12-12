@@ -46,8 +46,7 @@ services:
       serverwatch-db:
         condition: service_healthy
         
-    networks:
-      - serverwatch_network
+   
   serverwatch-db:
     image: postgres:17
     container_name: serverwatch-db
@@ -60,8 +59,7 @@ services:
    
     volumes:
       - db_data:/var/lib/postgresql/data
-    networks:
-      - serverwatch_network
+   
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d ${DATABASE_NAME} -U ${DATABASE_USER}"]
       interval: 10s
@@ -82,8 +80,7 @@ services:
     depends_on:
       serverwatch-db:
         condition: service_healthy
-    networks:
-      - serverwatch_network
+   
     volumes:
       - ./src/main/resources/db/migration:/flyway/sql  
     entrypoint: ["flyway", "migrate"]
@@ -91,5 +88,4 @@ services:
 volumes:
   db_data:
 networks:
-  serverwatch_network:
-    driver: bridge
+  
