@@ -577,54 +577,110 @@ public class SnmpHelper {
     }
 
     /**
-     * Helper para obter informações de memória do Windows via Host Resources
-     * MIB
+     * Helper para obter informações de memória do Windows/PFSENSE via Host Resources MIB
+     * Procura por TODAS as entradas de tipo RAM e retorna a MAIOR (RAM principal)
      */
     private String getWindowsMemoryFromHostResources(String type) throws Exception {
-        for (int i = 1; i <= 10; i++) {
+        long bestTotalKB = 0;
+        long bestUsedKB = 0;
+        int bestIndex = -1;
+        String bestDescr = "";
+        
+        System.out.println("[MEM-HR] Procurando entradas de RAM em Host Resources (índices 1-50)...");
+        
+        // Procura por TODAS as entradas RAM - expandido para índice 50
+        for (int i = 1; i <= 50; i++) {
             try {
                 String storageType = getAsString(OID_HR_STORAGE_TYPE + "." + i);
-                if (storageType != null && storageType.contains("1.3.6.1.2.1.25.2.1.2")) {
+                String descr = getAsString(OID_HR_STORAGE_DESCR + "." + i);
+                
+                // Ignora se não tem tipo ou descrição
+                if (storageType == null || descr == null || storageType.contains("noSuch")) {
+                    continue;
+                }
+                
+                System.out.println("[MEM-HR] Índice " + i + ": tipo=" + storageType + ", desc=" + descr);
+                
+                // Procura por RAM - pode ser tipo .2 (RAM) ou descrição contendo "memory"/"physical"
+                boolean isRamType = storageType.endsWith(".2") || storageType.contains("1.3.6.1.2.1.25.2.1.2");
+                boolean isRamDescription = descr.toLowerCase().contains("physical") || 
+                                          descr.toLowerCase().contains("memory") ||
+                                          descr.toLowerCase().contains("ram");
+                
+                if (isRamType || isRamDescription) {
+                    System.out.println("[MEM-HR] ✓ Encontrado candidato: " + descr);
+                    
                     String units = getAsString(OID_HR_STORAGE_UNITS + "." + i);
                     String size = getAsString(OID_HR_STORAGE_SIZE + "." + i);
                     String used = getAsString(OID_HR_STORAGE_USED + "." + i);
 
-                    if (units != null && size != null) {
-                        long unitSize = Long.parseLong(units);
-                        long totalSize = Long.parseLong(size);
-                        long totalBytes = unitSize * totalSize;
-                        long totalKB = totalBytes / 1024;
-
-                        switch (type) {
-                            case "total" -> {
-                                return String.valueOf(totalKB);
-                            }
-                            case "used" -> {
-                                if (used != null) {
-                                    long usedSize = Long.parseLong(used);
-                                    long usedBytes = unitSize * usedSize;
-                                    return String.valueOf(usedBytes / 1024);
+                    if (units != null && size != null && !units.contains("noSuch") && !size.contains("noSuch")) {
+                        try {
+                            long unitSize = Long.parseLong(units.trim());
+                            long totalSize = Long.parseLong(size.trim());
+                            long usedSize = Long.parseLong(used != null && !used.contains("noSuch") ? used.trim() : "0");
+                            
+                            long totalBytes = unitSize * totalSize;
+                            long totalKB = totalBytes / 1024;
+                            long usedBytes = unitSize * usedSize;
+                            long usedKB = usedBytes / 1024;
+                            
+                            long totalGB = totalKB / 1024 / 1024;
+                            System.out.println("[MEM-HR] Índice " + i + ": " + descr + " = " + totalGB + " GB (KB=" + totalKB + ")");
+                            
+                            // Descarta valores muito pequenos (< 256 MB) e rejeita entradas óbvias não-RAM
+                            boolean isTooSmall = totalKB < 262144; // 256 MB em KB
+                            boolean isVirtual = descr.toLowerCase().contains("virtual");
+                            
+                            if (!isTooSmall && !isVirtual) {
+                                // Prioriza a MAIOR entrada encontrada
+                                if (totalKB > bestTotalKB) {
+                                    bestTotalKB = totalKB;
+                                    bestUsedKB = usedKB;
+                                    bestIndex = i;
+                                    bestDescr = descr;
+                                    System.out.println("[MEM-HR] ✅ Nova melhor entrada: índice " + i + " com " + totalGB + " GB");
                                 }
+                            } else {
+                                String reason = isTooSmall ? ("muito pequeno: " + (totalKB/1024) + " MB") : "é virtual";
+                                System.out.println("[MEM-HR] ⚠️ Descartado (" + reason + ")");
                             }
-                            case "available" -> {
-                                if (used != null) {
-                                    long usedSize = Long.parseLong(used);
-                                    long availableSize = totalSize - usedSize;
-                                    long availableBytes = unitSize * availableSize;
-                                    return String.valueOf(availableBytes / 1024);
-                                }
-                            }
-                            default -> {
-                                // Tipo desconhecido
-                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("[MEM-HR] ❌ Erro parsing números no índice " + i + ": " + e.getMessage());
                         }
+                    } else {
+                        System.out.println("[MEM-HR] ⚠️ OIDs não retornaram valores válidos (units=" + units + ", size=" + size + ")");
                     }
                 }
             } catch (Exception e) {
                 // Continue tentando outros índices
             }
         }
-        throw new Exception("Memória " + type + " não encontrada via Host Resources MIB");
+        
+        if (bestIndex == -1) {
+            System.out.println("[MEM-HR] ❌ Nenhuma entrada RAM válida encontrada");
+            throw new Exception("Memória " + type + " não encontrada via Host Resources MIB");
+        }
+        
+        System.out.println("[MEM-HR] ✅ Usando entrada: índice " + bestIndex + " (" + bestDescr + ") com " + (bestTotalKB/1024/1024) + " GB");
+        
+        // Retorna conforme o tipo solicitado
+        switch (type) {
+            case "total" -> {
+                System.out.println("[MEM-HR] Retornando TOTAL: " + bestTotalKB + " KB");
+                return String.valueOf(bestTotalKB);
+            }
+            case "used" -> {
+                System.out.println("[MEM-HR] Retornando USADO: " + bestUsedKB + " KB");
+                return String.valueOf(bestUsedKB);
+            }
+            case "available" -> {
+                long availKB = bestTotalKB - bestUsedKB;
+                System.out.println("[MEM-HR] Retornando DISPONÍVEL: " + availKB + " KB");
+                return String.valueOf(availKB);
+            }
+            default -> throw new Exception("Tipo de memória desconhecido: " + type);
+        }
     }
 
     /**
@@ -766,12 +822,34 @@ public class SnmpHelper {
 
         try {
             boolean isWindowsSystem = isWindowsSystem();
+            boolean isPfsenseSystem = false;
+            
+            // Detecta PFSENSE
+            try {
+                isPfsenseSystem = isPfSenseSystem();
+            } catch (Exception e) {
+                // Ignora erro na detecção
+            }
+
+            System.out.println("[DEBUG DISK] isWindows=" + isWindowsSystem + ", isPfsense=" + isPfsenseSystem);
 
             if (isWindowsSystem) {
                 // Windows: usa Host Resources MIB para enumerar todos os discos
+                System.out.println("[DEBUG DISK] Coletando discos Windows...");
                 diskList = collectWindowsDisks();
+            } else if (isPfsenseSystem) {
+                // PFSENSE/FreeBSD: usa Net-SNMP ou Host Resources (tenta ambos)
+                System.out.println("[DEBUG DISK] Coletando discos PFSENSE/FreeBSD...");
+                diskList = collectPfsenseDisks();
+                
+                // Se não encontrou via Net-SNMP, tenta Host Resources
+                if (diskList.isEmpty()) {
+                    System.out.println("[DEBUG DISK] Net-SNMP não retornou discos, tentando Host Resources...");
+                    diskList = collectPfsenseDisksViaHostResources();
+                }
             } else {
                 // Linux: usa Net-SNMP para enumerar discos
+                System.out.println("[DEBUG DISK] Coletando discos Linux...");
                 diskList = collectLinuxDisks();
             }
 
@@ -780,8 +858,10 @@ public class SnmpHelper {
                 disk.calculateUsagePercent();
             }
 
+            System.out.println("[DEBUG DISK] Total de discos encontrados: " + diskList.size());
+
         } catch (Exception e) {
-            // Error collecting disks
+            System.out.println("[DEBUG DISK] ❌ Erro ao coletar discos: " + e.getMessage());
         }
 
         return diskList;
@@ -794,8 +874,15 @@ public class SnmpHelper {
         java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
 
         try {
+            System.out.println("\n[DEBUG DISK-WIN] ========== INICIANDO BUSCA POR DISCOS WINDOWS ==========");
+            System.out.println("[DEBUG DISK-WIN] Procurando discos Windows (índices 1-200)...\n");
+            
+            int discosTotaisEncontrados = 0;
+            int discosAdicionados = 0;
+            
             // Enumera índices de storage do Host Resources MIB
-            for (int i = 1; i <= 20; i++) { // Testa até 20 índices
+            // Expandido para 200 índices para encontrar discos em servidores com muitos storage
+            for (int i = 1; i <= 200; i++) {
                 try {
                     // Verifica o tipo de storage
                     String storageType = getAsString(OID_HR_STORAGE_TYPE + "." + i);
@@ -809,30 +896,60 @@ public class SnmpHelper {
                         continue;
                     }
 
-                    // Filtra apenas Fixed Disks (tipo .4 geralmente é disco fixo)
-                    if (!storageType.endsWith(".4") && !description.toLowerCase().contains("fixed")) {
-                        continue; // Pula RAM, CD-ROM, etc.
-                    }
+                    discosTotaisEncontrados++;
+                    System.out.println("[DEBUG DISK-WIN] Índice " + i + ": Tipo=" + storageType);
+                    System.out.println("[DEBUG DISK-WIN]         Desc=" + description);
 
-                    // Coleta métricas do disco
+                    // Coleta métricas do disco ANTES de filtrar
                     String totalUnits = getAsString(OID_HR_STORAGE_SIZE + "." + i);
                     String usedUnits = getAsString(OID_HR_STORAGE_USED + "." + i);
                     String unitSize = getAsString(OID_HR_STORAGE_UNITS + "." + i);
 
-                    if (totalUnits != null && !totalUnits.contains("noSuch")
-                            && usedUnits != null && !usedUnits.contains("noSuch")
-                            && unitSize != null && !unitSize.contains("noSuch")) {
+                    System.out.println("[DEBUG DISK-WIN]         Size (unidades)=" + totalUnits + ", Unit (bytes)=" + unitSize + ", Used=" + usedUnits);
 
+                    if (totalUnits == null || totalUnits.contains("noSuch") ||
+                        unitSize == null || unitSize.contains("noSuch")) {
+                        System.out.println("[DEBUG DISK-WIN] ⚠️ OIDs não retornaram valores válidos\n");
+                        continue;
+                    }
+
+                    try {
                         long total = Long.parseLong(totalUnits.trim());
-                        long used = Long.parseLong(usedUnits.trim());
+                        long used = usedUnits != null && !usedUnits.contains("noSuch") ? 
+                                    Long.parseLong(usedUnits.trim()) : 0;
                         long unit = Long.parseLong(unitSize.trim());
 
-                        // Converte para GB
-                        long totalGB = (total * unit) / (1024 * 1024 * 1024);
-                        long usedGB = (used * unit) / (1024 * 1024 * 1024);
+                        System.out.println("[DEBUG DISK-WIN]         Cálculo: Total=" + total + " unidades, Used=" + used + " unidades, Unit=" + unit + " bytes/unidade");
+
+                        // Converte para bytes - ambos total e used usam a mesma unidade
+                        long totalBytes = total * unit;
+                        long usedBytes = used * unit;
+                        
+                        long totalGB = totalBytes / (1024L * 1024L * 1024L);
+                        long usedGB = usedBytes / (1024L * 1024L * 1024L);
                         long availableGB = totalGB - usedGB;
 
-                        if (totalGB > 0) { // Só adiciona se tiver tamanho válido
+                        System.out.println("[DEBUG DISK-WIN]         = " + totalBytes + " bytes");
+                        System.out.println("[DEBUG DISK-WIN]         = " + totalGB + " GB");
+
+                        // Filtra por tipo de disco DEPOIS de ter os valores
+                        // Tipo .4 é o padrão para "Fixed Disk" em Host Resources MIB
+                        // Tipo .1 é Physical Memory (deve ser ignorado)
+                        // Tipo .3 é Virtual Memory (deve ser ignorado)
+                        boolean isFixedDisk = storageType.endsWith(".4");
+                        boolean hasFixedKeyword = description.toLowerCase().contains("fixed");
+                        boolean isDriveLetter = description.matches("^[A-Z]:\\\\.*");
+                        
+                        // Rejeita explicitamente memória virtual e física
+                        boolean isVirtualMemory = storageType.endsWith(".3") || description.toLowerCase().contains("virtual");
+                        boolean isPhysicalMemory = storageType.endsWith(".1") || description.toLowerCase().contains("physical");
+                        
+                        System.out.println("[DEBUG DISK-WIN]         Filtros: isFixed=" + isFixedDisk + ", hasKeyword=" + hasFixedKeyword + 
+                                         ", isDrive=" + isDriveLetter + ", isVirtual=" + isVirtualMemory + ", isPhysical=" + isPhysicalMemory);
+                        
+                        boolean shouldAdd = (isFixedDisk || hasFixedKeyword || isDriveLetter) && !isVirtualMemory && !isPhysicalMemory;
+
+                        if (totalGB > 0 && shouldAdd) {
                             com.victorqueiroga.serverwatch.dto.DiskInfoDto disk = new com.victorqueiroga.serverwatch.dto.DiskInfoDto();
                             disk.setPath(extractDriveLetter(description));
                             disk.setDescription(description);
@@ -842,16 +959,94 @@ public class SnmpHelper {
                             disk.setType("Fixed Disk");
 
                             diskList.add(disk);
+                            discosAdicionados++;
+                            System.out.println("[DEBUG DISK-WIN] ✅ DISCO ADICIONADO: " + description + " (" + totalGB + " GB)\n");
+                        } else {
+                            String motivo = totalGB == 0 ? "tamanho zero" : "descartado pelo filtro";
+                            System.out.println("[DEBUG DISK-WIN] ⚠️ " + motivo + " (tipo=" + storageType + ", desc=" + description + ")\n");
                         }
+                    } catch (NumberFormatException nfe) {
+                        System.out.println("[DEBUG DISK-WIN] ❌ Erro ao parsear números no índice " + i + ": " + nfe.getMessage() + "\n");
+                    } catch (Exception calcError) {
+                        System.out.println("[DEBUG DISK-WIN] ❌ Erro no cálculo para índice " + i + ": " + calcError.getMessage() + "\n");
                     }
 
                 } catch (Exception e) {
                     // Ignora erros de índices individuais
                 }
             }
+            
+            System.out.println("[DEBUG DISK-WIN] ========== RESULTADO FINAL ==========");
+            System.out.println("[DEBUG DISK-WIN] Total de entradas de storage encontradas: " + discosTotaisEncontrados);
+            System.out.println("[DEBUG DISK-WIN] Total de discos Windows adicionados: " + discosAdicionados);
+            System.out.println("[DEBUG DISK-WIN] =====================================\n");
+            
+            // Se não encontrou o disco esperado, faz busca agressiva em índices maiores
+            if (discosAdicionados < 2) {
+                System.out.println("[DEBUG DISK-WIN] ⚠️ Poucos discos encontrados, buscando em índices 201-500...");
+                for (int i = 201; i <= 500; i++) {
+                    try {
+                        String storageType = getAsString(OID_HR_STORAGE_TYPE + "." + i);
+                        if (storageType == null || storageType.contains("noSuch")) {
+                            continue;
+                        }
+
+                        String description = getAsString(OID_HR_STORAGE_DESCR + "." + i);
+                        if (description == null || description.trim().isEmpty()) {
+                            continue;
+                        }
+
+                        // Log apenas se encontrar algo
+                        System.out.println("[DEBUG DISK-WIN-EXT] Índice " + i + ": Tipo=" + storageType + ", Desc=" + description);
+
+                        // Coleta métricas
+                        String totalUnits = getAsString(OID_HR_STORAGE_SIZE + "." + i);
+                        String usedUnits = getAsString(OID_HR_STORAGE_USED + "." + i);
+                        String unitSize = getAsString(OID_HR_STORAGE_UNITS + "." + i);
+
+                        if (totalUnits != null && !totalUnits.contains("noSuch") &&
+                            unitSize != null && !unitSize.contains("noSuch")) {
+
+                            long total = Long.parseLong(totalUnits.trim());
+                            long used = usedUnits != null && !usedUnits.contains("noSuch") ? 
+                                        Long.parseLong(usedUnits.trim()) : 0;
+                            long unit = Long.parseLong(unitSize.trim());
+
+                            long totalBytes = total * unit;
+                            long usedBytes = used * unit;
+                            
+                            long totalGB = totalBytes / (1024L * 1024L * 1024L);
+                            long usedGB = usedBytes / (1024L * 1024L * 1024L);
+                            long availableGB = totalGB - usedGB;
+
+                            // Critério menos restritivo: se for tipo .4 ou tiver tamanho > 100 MB
+                            boolean isFixedDisk = storageType.endsWith(".4");
+                            boolean isLargeStorage = totalGB >= 0.1; // >= 100MB
+                            boolean isVirtualMemory = storageType.endsWith(".3") || description.toLowerCase().contains("virtual");
+                            boolean isPhysicalMemory = storageType.endsWith(".1") || description.toLowerCase().contains("physical");
+                            
+                            if ((isFixedDisk || isLargeStorage) && !isVirtualMemory && !isPhysicalMemory && totalGB > 0) {
+                                com.victorqueiroga.serverwatch.dto.DiskInfoDto disk = new com.victorqueiroga.serverwatch.dto.DiskInfoDto();
+                                disk.setPath(extractDriveLetter(description));
+                                disk.setDescription(description);
+                                disk.setTotalGB(totalGB);
+                                disk.setUsedGB(usedGB);
+                                disk.setAvailableGB(availableGB);
+                                disk.setType("Fixed Disk");
+
+                                diskList.add(disk);
+                                System.out.println("[DEBUG DISK-WIN-EXT] ✅ DISCO ENCONTRADO NA BUSCA ESTENDIDA: " + description + " (" + totalGB + " GB)\n");
+                            }
+                        }
+                    } catch (Exception e) {
+                        // Ignora erros em índices estendidos
+                    }
+                }
+            }
 
         } catch (Exception e) {
-            // Error collecting Windows disks
+            System.out.println("[DEBUG DISK-WIN] ❌ Erro ao coletar discos Windows: " + e.getMessage());
+            e.printStackTrace();
         }
 
         return diskList;
@@ -937,21 +1132,16 @@ public class SnmpHelper {
         java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
 
         try {
-            int storageEntriesFound = 0;
-            int diskEntriesFound = 0;
-
             // Enumera índices de storage do Host Resources MIB
             // Aumentado para 100 para contemplar índices maiores (some systems use indices
             // > 50)
-            for (int i = 1; i <= 100; i++) {
+            for (int i = 1; i <= 200; i++) {
                 try {
                     // Verifica o tipo de storage
                     String storageType = getAsString(OID_HR_STORAGE_TYPE + "." + i);
                     if (storageType == null || storageType.contains("noSuch")) {
                         continue;
                     }
-
-                    storageEntriesFound++;
 
                     // Pega descrição do storage
                     String description = getAsString(OID_HR_STORAGE_DESCR + "." + i);
@@ -974,8 +1164,6 @@ public class SnmpHelper {
                     if (!description.startsWith("/") && !storageType.endsWith(".4")) {
                         continue;
                     }
-
-                    diskEntriesFound++;
 
                     // Coleta métricas do disco
                     String totalUnits = getAsString(OID_HR_STORAGE_SIZE + "." + i);
@@ -1025,6 +1213,174 @@ public class SnmpHelper {
 
         } catch (Exception e) {
             // Error collecting disks from Host Resources
+        }
+
+        return diskList;
+    }
+
+    /**
+     * Coleta discos do PFSENSE/FreeBSD usando Net-SNMP (UCD-MIB)
+     * FreeBSD geralmente suporta as mesmas OIDs que Linux
+     */
+    private java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> collectPfsenseDisks() {
+        java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
+
+        try {
+            System.out.println("[DEBUG DISK-PFSENSE] Tentando coleta via Net-SNMP...");
+            
+            // PFSENSE/FreeBSD pode usar as mesmas OIDs que Linux
+            // Net-SNMP enumera discos nos índices 1, 2, 3...
+            for (int i = 1; i <= 20; i++) {
+                try {
+                    String path = getAsString(OID_DISK_PATH + "." + i);
+
+                    // Se path é nulo ou contém erro SNMP, pula
+                    if (path == null || path.contains("noSuch") || path.trim().isEmpty()) {
+                        continue;
+                    }
+
+                    System.out.println("[DEBUG DISK-PFSENSE] Encontrado disco índice " + i + ": " + path);
+
+                    String total = getAsString(OID_DISK_TOTAL + "." + i);
+                    String used = getAsString(OID_DISK_USED + "." + i);
+                    String avail = getAsString(OID_DISK_AVAIL + "." + i);
+
+                    if (total != null && !total.contains("noSuch")
+                            && used != null && !used.contains("noSuch")
+                            && avail != null && !avail.contains("noSuch")) {
+
+                        try {
+                            long totalKB = Long.parseLong(total.trim());
+                            long usedKB = Long.parseLong(used.trim());
+                            long availKB = Long.parseLong(avail.trim());
+
+                            // Converte para GB
+                            long totalGB = totalKB / (1024 * 1024);
+                            long usedGB = usedKB / (1024 * 1024);
+                            long availableGB = availKB / (1024 * 1024);
+
+                            if (totalKB > 0) {
+                                com.victorqueiroga.serverwatch.dto.DiskInfoDto disk = new com.victorqueiroga.serverwatch.dto.DiskInfoDto();
+                                disk.setPath(path);
+                                disk.setDescription(path + " filesystem");
+                                disk.setTotalGB(totalGB);
+                                disk.setUsedGB(usedGB);
+                                disk.setAvailableGB(availableGB);
+                                disk.setType("FreeBSD Filesystem");
+                                disk.calculateUsagePercent();
+
+                                diskList.add(disk);
+                                System.out.println("[DEBUG DISK-PFSENSE] ✅ Disco adicionado: " + path + " (" + totalGB + " GB)");
+                            }
+                        } catch (NumberFormatException nfe) {
+                            System.out.println("[DEBUG DISK-PFSENSE] Erro ao parsear números para índice " + i);
+                        }
+                    }
+
+                } catch (Exception e) {
+                    // Ignora erros de índices individuais silenciosamente
+                }
+            }
+
+        } catch (Exception e) {
+            System.out.println("[DEBUG DISK-PFSENSE] ❌ Erro ao coletar discos PFSENSE via Net-SNMP: " + e.getMessage());
+        }
+
+        return diskList;
+    }
+
+    /**
+     * Coleta discos do PFSENSE/FreeBSD usando Host Resources MIB (fallback)
+     * Quando UCD-MIB não está disponível
+     */
+    private java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> collectPfsenseDisksViaHostResources() {
+        java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
+
+        try {
+            System.out.println("[DEBUG DISK-PFSENSE-HR] Tentando coleta via Host Resources MIB...");
+
+            // Enumera índices de storage do Host Resources MIB
+            // FreeBSD pode ter índices até altos
+            for (int i = 1; i <= 100; i++) {
+                try {
+                    // Verifica o tipo de storage
+                    String storageType = getAsString(OID_HR_STORAGE_TYPE + "." + i);
+                    if (storageType == null || storageType.contains("noSuch")) {
+                        continue;
+                    }
+
+                    // Pega descrição do storage
+                    String description = getAsString(OID_HR_STORAGE_DESCR + "." + i);
+                    if (description == null || description.trim().isEmpty()) {
+                        continue;
+                    }
+
+                    System.out.println("[DEBUG DISK-PFSENSE-HR] Índice " + i + " - Tipo: " + storageType + ", Desc: " + description);
+
+                    // Filtra por tipos de disco fixo
+                    // FreeBSD também usa tipo .4 para fixed disk
+                    // Pula memória física (.1, .2, .3) e cd-rom (.5)
+                    String typeStr = storageType.trim();
+                    
+                    // Se é memória, pula
+                    if (typeStr.endsWith(".1") || typeStr.endsWith(".2") || typeStr.endsWith(".3")) {
+                        continue;
+                    }
+                    
+                    // Se não é disco fixo (.4) e não parece ser filesystem, pula
+                    if (!typeStr.endsWith(".4") && !description.startsWith("/")) {
+                        continue;
+                    }
+
+                    // Coleta métricas do disco
+                    String totalUnits = getAsString(OID_HR_STORAGE_SIZE + "." + i);
+                    String usedUnits = getAsString(OID_HR_STORAGE_USED + "." + i);
+                    String unitSize = getAsString(OID_HR_STORAGE_UNITS + "." + i);
+
+                    if (totalUnits != null && !totalUnits.contains("noSuch")
+                            && usedUnits != null && !usedUnits.contains("noSuch")
+                            && unitSize != null && !unitSize.contains("noSuch")) {
+
+                        try {
+                            long total = Long.parseLong(totalUnits.trim());
+                            long used = Long.parseLong(usedUnits.trim());
+                            long unit = Long.parseLong(unitSize.trim());
+
+                            // Converte para GB
+                            long totalBytes = total * unit;
+                            long usedBytes = used * unit;
+                            long availableBytes = totalBytes - usedBytes;
+
+                            long totalGB = totalBytes / (1024 * 1024 * 1024);
+                            long usedGB = usedBytes / (1024 * 1024 * 1024);
+                            long availableGB = availableBytes / (1024 * 1024 * 1024);
+
+                            // Só adiciona se tiver tamanho válido (pelo menos 1 MB)
+                            if (totalBytes > (1024 * 1024)) {
+                                com.victorqueiroga.serverwatch.dto.DiskInfoDto disk = new com.victorqueiroga.serverwatch.dto.DiskInfoDto();
+                                disk.setPath(description);
+                                disk.setDescription(description + " filesystem");
+                                disk.setTotalGB(totalGB);
+                                disk.setUsedGB(usedGB);
+                                disk.setAvailableGB(availableGB);
+                                disk.setType("FreeBSD Filesystem (HR-MIB)");
+                                disk.calculateUsagePercent();
+
+                                diskList.add(disk);
+                                System.out.println("[DEBUG DISK-PFSENSE-HR] ✅ Disco adicionado: " + description + " (" + totalGB + " GB)");
+                            }
+                        } catch (NumberFormatException nfe) {
+                            System.out.println("[DEBUG DISK-PFSENSE-HR] Erro ao parsear números para índice " + i);
+                        }
+                    }
+
+                } catch (Exception e) {
+                    // Ignora erros de índices individuais
+                }
+            }
+
+        } catch (Exception e) {
+            System.out.println("[DEBUG DISK-PFSENSE-HR] ❌ Erro ao coletar discos PFSENSE via Host Resources: " + e.getMessage());
         }
 
         return diskList;
