@@ -98,6 +98,8 @@ server:
   port: ${SERVER_PORT:8080}
   servlet:
     context-path: /
+  # Faz o Spring respeitar X-Forwarded-* (HTTPS no proxy)
+  forward-headers-strategy: framework
   error:
     whitelabel:
       enabled: false
