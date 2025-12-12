@@ -6,9 +6,7 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,8 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 @RestController
 @RequestMapping("/api/monitoring")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('USER')")
-@Profile("!dev")  // Exclui do profile dev
 public class MonitoringApiController {
 
     private final ServerMonitoringService monitoringService;

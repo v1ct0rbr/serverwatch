@@ -118,9 +118,9 @@ public class SecurityConfiguration {
                                                 .permitAll()
 
                                                 // Recursos que requerem apenas autenticação (sem verificação de role)
-                                                .requestMatchers("/servers/**", "/settings/**", "/api/servers/**",
+                                               /*  .requestMatchers("/servers/**", "/settings/**", "/api/servers/**",
                                                                 "/dashboard", "/monitoring/**", "/api/monitoring/**")
-                                                .authenticated()
+                                                .authenticated() */
 
                                                 // NOTA: Para implementar verificação de roles, descomente e configure
                                                 // abaixo:
@@ -129,11 +129,11 @@ public class SecurityConfiguration {
                                                 // 2. Acesse Realm → Clients → seu-client
                                                 // 3. Vá em Client Scopes → Assign scope → Adicione "roles"
                                                 // 4. Configure as roles no Keycloak e atribua aos usuários
-                                                // .requestMatchers("/servers/**", "/settings/**", "/api/servers/**")
-                                                // .hasAnyRole("SERVERWATCH_USER")
-                                                // .requestMatchers("/dashboard", "/monitoring/**",
-                                                // "/api/monitoring/**")
-                                                // .hasAnyRole("SERVERWATCH_MONITOR", "SERVERWATCH_USER")
+                                                 .requestMatchers("/servers/**", "/settings/**", "/api/servers/**")
+                                                 .hasAnyRole("SERVERWATCH_USER")
+                                                 .requestMatchers("/dashboard", "/monitoring/**",
+                                                 "/api/monitoring/**")
+                                                 .hasAnyRole("SERVERWATCH_MONITOR", "SERVERWATCH_USER")
 
                                                 // Qualquer outra requisição requer autenticação
                                                 .anyRequest().authenticated());
