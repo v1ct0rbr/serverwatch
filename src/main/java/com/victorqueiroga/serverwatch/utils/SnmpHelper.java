@@ -117,6 +117,7 @@ public class SnmpHelper {
 
     // Cache para detecção de SO
     private Boolean isWindows = null;
+    private Boolean isPfsense = null;
 
     public SnmpHelper(String ip, String community) {
         this.address = "udp:" + ip + "/161"; // Porta SNMP padrão
@@ -209,6 +210,19 @@ public class SnmpHelper {
             isWindows = sysDescr.contains("windows") || sysDescr.contains("microsoft");
         }
         return isWindows;
+    }
+
+    /**
+     * Detecta se é um sistema PFSENSE (FreeBSD) baseado na descrição do sistema
+     */
+    public boolean isPfSenseSystem() throws Exception {
+        if (isPfsense == null) {
+            String sysDescr = getAsString(OID_SYS_DESCR).toLowerCase();
+            isPfsense = sysDescr.contains("pfsense") || 
+                       sysDescr.contains("freebsd") ||
+                       sysDescr.contains("netgate");
+        }
+        return isPfsense;
     }
 
     /**
@@ -513,14 +527,14 @@ public class SnmpHelper {
      */
     public String getMemoryTotal() throws Exception {
         try {
-            if (isWindowsSystem()) {
-                // Para Windows: usa Host Resources MIB
-                // Procura por storage do tipo RAM (1.3.6.1.2.1.25.2.1.2)
-                return getWindowsMemoryFromHostResources("total");
-            } else {
-                // Para Linux/Unix: usa Net-SNMP
-                return getAsString(OID_MEM_TOTAL_REAL);
+            // Tenta Host Resources MIB primeiro (Windows e PFSENSE)
+            String hostResourcesMem = getWindowsMemoryFromHostResources("total");
+            if (hostResourcesMem != null && !hostResourcesMem.isEmpty() && !hostResourcesMem.equals("0")) {
+                return hostResourcesMem;
             }
+            
+            // Fallback para Net-SNMP OIDs (Linux)
+            return getAsString(OID_MEM_TOTAL_REAL);
         } catch (Exception e) {
             return null;
         }
@@ -531,11 +545,14 @@ public class SnmpHelper {
      */
     public String getMemoryAvailable() throws Exception {
         try {
-            if (isWindowsSystem()) {
-                return getWindowsMemoryFromHostResources("available");
-            } else {
-                return getAsString(OID_MEM_AVAIL_REAL);
+            // Tenta Host Resources MIB primeiro (Windows e PFSENSE)
+            String hostResourcesMem = getWindowsMemoryFromHostResources("available");
+            if (hostResourcesMem != null && !hostResourcesMem.isEmpty() && !hostResourcesMem.equals("0")) {
+                return hostResourcesMem;
             }
+            
+            // Fallback para Net-SNMP OIDs (Linux)
+            return getAsString(OID_MEM_AVAIL_REAL);
         } catch (Exception e) {
             return null;
         }
@@ -546,11 +563,14 @@ public class SnmpHelper {
      */
     public String getMemoryUsed() throws Exception {
         try {
-            if (isWindowsSystem()) {
-                return getWindowsMemoryFromHostResources("used");
-            } else {
-                return getAsString(OID_MEM_USED_REAL);
+            // Tenta Host Resources MIB primeiro (Windows e PFSENSE)
+            String hostResourcesMem = getWindowsMemoryFromHostResources("used");
+            if (hostResourcesMem != null && !hostResourcesMem.isEmpty() && !hostResourcesMem.equals("0")) {
+                return hostResourcesMem;
             }
+            
+            // Fallback para Net-SNMP OIDs (Linux)
+            return getAsString(OID_MEM_USED_REAL);
         } catch (Exception e) {
             return null;
         }
@@ -576,23 +596,27 @@ public class SnmpHelper {
                         long totalKB = totalBytes / 1024;
 
                         switch (type) {
-                            case "total":
+                            case "total" -> {
                                 return String.valueOf(totalKB);
-                            case "used":
+                            }
+                            case "used" -> {
                                 if (used != null) {
                                     long usedSize = Long.parseLong(used);
                                     long usedBytes = unitSize * usedSize;
                                     return String.valueOf(usedBytes / 1024);
                                 }
-                                break;
-                            case "available":
+                            }
+                            case "available" -> {
                                 if (used != null) {
                                     long usedSize = Long.parseLong(used);
                                     long availableSize = totalSize - usedSize;
                                     long availableBytes = unitSize * availableSize;
                                     return String.valueOf(availableBytes / 1024);
                                 }
-                                break;
+                            }
+                            default -> {
+                                // Tipo desconhecido
+                            }
                         }
                     }
                 }
@@ -600,7 +624,7 @@ public class SnmpHelper {
                 // Continue tentando outros índices
             }
         }
-        throw new Exception("Disco " + type + " não encontrado via Host Resources MIB");
+        throw new Exception("Memória " + type + " não encontrada via Host Resources MIB");
     }
 
     /**
@@ -675,23 +699,27 @@ public class SnmpHelper {
                         long totalKB = totalBytes / 1024;
 
                         switch (type) {
-                            case "total":
+                            case "total" -> {
                                 return String.valueOf(totalKB);
-                            case "used":
+                            }
+                            case "used" -> {
                                 if (used != null) {
                                     long usedSize = Long.parseLong(used);
                                     long usedBytes = unitSize * usedSize;
                                     return String.valueOf(usedBytes / 1024);
                                 }
-                                break;
-                            case "available":
+                            }
+                            case "available" -> {
                                 if (used != null) {
                                     long usedSize = Long.parseLong(used);
                                     long availableSize = totalSize - usedSize;
                                     long availableBytes = unitSize * availableSize;
                                     return String.valueOf(availableBytes / 1024);
                                 }
-                                break;
+                            }
+                            default -> {
+                                // Tipo desconhecido
+                            }
                         }
                     }
                 }
@@ -737,9 +765,9 @@ public class SnmpHelper {
         java.util.List<com.victorqueiroga.serverwatch.dto.DiskInfoDto> diskList = new java.util.ArrayList<>();
 
         try {
-            boolean isWindows = isWindowsSystem();
+            boolean isWindowsSystem = isWindowsSystem();
 
-            if (isWindows) {
+            if (isWindowsSystem) {
                 // Windows: usa Host Resources MIB para enumerar todos os discos
                 diskList = collectWindowsDisks();
             } else {
